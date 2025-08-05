@@ -7,7 +7,6 @@ const uploadController = require('../../controllers/upload/uploadController');
 // Import middleware
 const { authenticate, requireAdmin } = require('../../middleware/auth/authMiddleware');
 const { validateParams, validateQuery } = require('../../middleware/validation/validationMiddleware');
-const { uploadLimiter, apiLimiter } = require('../../middleware/rateLimiter');
 const { 
   productImageUpload, 
   avatarUpload, 
@@ -17,12 +16,10 @@ const {
 
 // Import validation schemas
 const { uploadValidators } = require('../../validators/uploadValidators');
-
 // Product image upload (admin only)
 router.post('/product-image',
   authenticate,
   requireAdmin,
-  uploadLimiter,
   productImageUpload.single('image'),
   uploadController.uploadProductImage
 );
@@ -30,7 +27,6 @@ router.post('/product-image',
 router.post('/product-images',
   authenticate,
   requireAdmin,
-  uploadLimiter,
   productImageUpload.array('images', 10),
   uploadController.uploadProductImages
 );
@@ -38,7 +34,6 @@ router.post('/product-images',
 // User avatar upload
 router.post('/avatar',
   authenticate,
-  uploadLimiter,
   avatarUpload.single('avatar'),
   uploadController.uploadAvatar
 );
@@ -47,7 +42,6 @@ router.post('/avatar',
 router.post('/category-image',
   authenticate,
   requireAdmin,
-  uploadLimiter,
   categoryImageUpload.single('image'),
   uploadController.uploadCategoryImage
 );
@@ -56,7 +50,6 @@ router.post('/category-image',
 router.post('/document',
   authenticate,
   requireAdmin,
-  uploadLimiter,
   documentUpload.single('document'),
   uploadController.uploadDocument
 );
@@ -65,7 +58,6 @@ router.post('/document',
 router.delete('/:filename',
   authenticate,
   requireAdmin,
-  apiLimiter,
   validateParams(uploadValidators.deleteFile),
   uploadController.deleteFile
 );
@@ -88,7 +80,6 @@ router.get('/list',
 router.post('/cleanup',
   authenticate,
   requireAdmin,
-  apiLimiter,
   uploadController.cleanupFiles
 );
 

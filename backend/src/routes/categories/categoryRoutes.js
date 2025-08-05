@@ -7,7 +7,7 @@ const categoryController = require('../../controllers/categories/categoryControl
 // Import middleware
 const { authenticate, requireAdmin, optionalAuth } = require('../../middleware/auth/authMiddleware');
 const { validateBody, validateParams, validateQuery } = require('../../middleware/validation/validationMiddleware');
-const { apiLimiter } = require('../../middleware/rateLimiter');
+
 
 // Import validation schemas
 const { categoryValidators } = require('../../validators/categoryValidators');
@@ -48,7 +48,7 @@ router.get('/:id/products',
 router.post('/',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateBody(categoryValidators.createCategory),
   categoryController.createCategory
 );
@@ -56,7 +56,7 @@ router.post('/',
 router.put('/:id',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateParams(categoryValidators.updateCategory),
   validateBody(categoryValidators.updateCategory),
   categoryController.updateCategory
@@ -65,7 +65,7 @@ router.put('/:id',
 router.delete('/:id',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateParams(categoryValidators.deleteCategory),
   categoryController.deleteCategory
 );
@@ -74,7 +74,7 @@ router.delete('/:id',
 router.post('/:categoryId/subcategories',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateParams(categoryValidators.createSubCategory),
   validateBody(categoryValidators.createSubCategory),
   categoryController.createSubCategory
@@ -83,7 +83,7 @@ router.post('/:categoryId/subcategories',
 router.put('/:categoryId/subcategories/:subCategoryId',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateParams(categoryValidators.updateSubCategory),
   validateBody(categoryValidators.updateSubCategory),
   categoryController.updateSubCategory
@@ -92,7 +92,7 @@ router.put('/:categoryId/subcategories/:subCategoryId',
 router.delete('/:categoryId/subcategories/:subCategoryId',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateParams(categoryValidators.deleteSubCategory),
   categoryController.deleteSubCategory
 );
@@ -114,7 +114,7 @@ router.get('/stats/product-counts',
 router.post('/import/excel',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   categoryController.importCategoriesFromExcel
 );
 

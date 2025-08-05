@@ -7,21 +7,14 @@ const orderController = require('../../controllers/orders/orderController');
 // Import middleware
 const { authenticate, requireAdmin, requireBuyer } = require('../../middleware/auth/authMiddleware');
 const { validateBody, validateParams, validateQuery } = require('../../middleware/validation/validationMiddleware');
-const { orderLimiter, apiLimiter } = require('../../middleware/rateLimiter');
 
 // Import validation schemas
 const { orderValidators } = require('../../validators/orderValidators');
-
-/**
- * Order Routes
- * Base path: /api/v1/orders
- */
 
 // Buyer routes (buyer authentication required)
 router.post('/create-from-cart',
   authenticate,
   requireBuyer,
-  orderLimiter,
   validateBody(orderValidators.createFromCart),
   orderController.createOrderFromCart
 );
@@ -43,7 +36,6 @@ router.get('/my-orders/:orderId',
 router.post('/my-orders/:orderId/cancel',
   authenticate,
   requireBuyer,
-  orderLimiter,
   validateParams(orderValidators.cancelOrder),
   orderController.cancelOrder
 );
@@ -51,7 +43,6 @@ router.post('/my-orders/:orderId/cancel',
 router.post('/my-orders/:orderId/request-refund',
   authenticate,
   requireBuyer,
-  orderLimiter,
   validateParams(orderValidators.requestRefund),
   validateBody(orderValidators.requestRefund),
   orderController.requestRefund
@@ -75,7 +66,6 @@ router.get('/:orderId',
 router.put('/:orderId/status',
   authenticate,
   requireAdmin,
-  apiLimiter,
   validateParams(orderValidators.updateOrderStatus),
   validateBody(orderValidators.updateOrderStatus),
   orderController.updateOrderStatus
@@ -84,7 +74,6 @@ router.put('/:orderId/status',
 router.put('/:orderId/shipping',
   authenticate,
   requireAdmin,
-  apiLimiter,
   validateParams(orderValidators.updateShippingInfo),
   validateBody(orderValidators.updateShippingInfo),
   orderController.updateShippingInfo
@@ -93,7 +82,6 @@ router.put('/:orderId/shipping',
 router.post('/:orderId/refund',
   authenticate,
   requireAdmin,
-  apiLimiter,
   validateParams(orderValidators.processRefund),
   validateBody(orderValidators.processRefund),
   orderController.processRefund

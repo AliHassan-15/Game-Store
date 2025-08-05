@@ -3,7 +3,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
 const session = require('express-session');
 const passport = require('passport');
 const path = require('path');
@@ -15,9 +14,25 @@ const { redisClient } = require('./config/redis');
 const { initializeSessionStore } = require('./config/passport');
 
 // Import middleware
-const { errorHandler, asyncHandler } = require('./middleware/errorHandler');
-const { requestLogger, errorLogger, performanceLogger, securityLogger, apiUsageLogger } = require('./middleware/logger');
-const { generalLimiter, authLimiter, uploadLimiter, orderLimiter, reviewLimiter, adminLimiter } = require('./middleware/rateLimiter');
+const { errorHandler, asyncHandler, notFoundHandler } = require('./middleware/errorHandler');
+const { 
+  requestLogger, 
+  errorLogger, 
+  performanceLogger, 
+  securityLogger, 
+  apiUsageLogger,
+  devLogger,
+  prodLogger 
+} = require('./middleware/logger');
+const { 
+  apiLimiter, 
+  authLimiter, 
+  passwordResetLimiter, 
+  uploadLimiter, 
+  orderLimiter, 
+  reviewLimiter, 
+  adminLimiter 
+} = require('./middleware/rateLimiter');
 
 // Import routes
 const routes = require('./routes');
@@ -93,58 +108,33 @@ app.use(passport.session());
 // Logging middleware
 if (process.env.NODE_ENV === ENV.DEVELOPMENT) {
   app.use(morgan('dev', { stream: logger.stream }));
+  app.use(devLogger);
 } else {
   app.use(morgan('combined', { stream: logger.stream }));
+  app.use(prodLogger);
 }
 
+// Custom logging middleware
 app.use(requestLogger);
 app.use(errorLogger);
 app.use(performanceLogger);
 app.use(securityLogger);
 app.use(apiUsageLogger);
 
-// Rate limiting middleware
+// Rate limiting middleware - apply to specific routes
 app.use('/api/v1/auth', authLimiter);
+app.use('/api/v1/auth/forgot-password', passwordResetLimiter);
+app.use('/api/v1/auth/reset-password', passwordResetLimiter);
 app.use('/api/v1/upload', uploadLimiter);
 app.use('/api/v1/orders', orderLimiter);
 app.use('/api/v1/reviews', reviewLimiter);
 app.use('/api/v1/admin', adminLimiter);
-app.use(generalLimiter);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV,
-    version: process.env.npm_package_version || '1.0.0'
-  });
-});
+// General API rate limiting
+app.use('/api', apiLimiter);
 
-// API documentation endpoint
-app.get('/docs', (req, res) => {
-  res.json({
-    message: 'GameStore API Documentation',
-    version: '1.0.0',
-    endpoints: {
-      auth: '/api/v1/auth',
-      products: '/api/v1/products',
-      categories: '/api/v1/categories',
-      cart: '/api/v1/cart',
-      orders: '/api/v1/orders',
-      reviews: '/api/v1/reviews',
-      users: '/api/v1/users',
-      admin: '/api/v1/admin',
-      stripe: '/api/v1/stripe',
-      upload: '/api/v1/upload'
-    },
-    documentation: process.env.API_DOCS_URL || 'https://docs.gamestore.com'
-  });
-});
-
-// API routes
-app.use('/api', routes);
+// API routes - mount the main routes file
+app.use('/', routes);
 
 // Stripe webhook endpoint (no body parsing for webhooks)
 app.post('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }), asyncHandler(async (req, res) => {
@@ -172,15 +162,8 @@ app.post('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }), as
   }
 }));
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found',
-    path: req.originalUrl,
-    method: req.method
-  });
-});
+// 404 handler for undefined routes
+app.use(notFoundHandler);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

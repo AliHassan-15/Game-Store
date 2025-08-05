@@ -7,7 +7,7 @@ const userController = require('../../controllers/users/userController');
 // Import middleware
 const { authenticate, requireAdmin, requireBuyer } = require('../../middleware/auth/authMiddleware');
 const { validateBody, validateParams, validateQuery } = require('../../middleware/validation/validationMiddleware');
-const { apiLimiter } = require('../../middleware/rateLimiter');
+
 
 // Import validation schemas
 const { userValidators } = require('../../validators/userValidators');
@@ -22,7 +22,7 @@ router.get('/profile',
 router.put('/profile',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateBody(userValidators.updateProfile),
   userController.updateUserProfile
 );
@@ -37,7 +37,7 @@ router.get('/addresses',
 router.post('/addresses',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateBody(userValidators.createAddress),
   userController.createUserAddress
 );
@@ -45,7 +45,7 @@ router.post('/addresses',
 router.put('/addresses/:addressId',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateParams(userValidators.updateAddress),
   validateBody(userValidators.updateAddress),
   userController.updateUserAddress
@@ -54,7 +54,7 @@ router.put('/addresses/:addressId',
 router.delete('/addresses/:addressId',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateParams(userValidators.deleteAddress),
   userController.deleteUserAddress
 );
@@ -62,7 +62,7 @@ router.delete('/addresses/:addressId',
 router.put('/addresses/:addressId/set-default',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateParams(userValidators.setDefaultAddress),
   userController.setDefaultAddress
 );
@@ -77,7 +77,7 @@ router.get('/payments',
 router.post('/payments',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateBody(userValidators.createPayment),
   userController.createUserPayment
 );
@@ -85,7 +85,7 @@ router.post('/payments',
 router.put('/payments/:paymentId',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateParams(userValidators.updatePayment),
   validateBody(userValidators.updatePayment),
   userController.updateUserPayment
@@ -94,7 +94,7 @@ router.put('/payments/:paymentId',
 router.delete('/payments/:paymentId',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateParams(userValidators.deletePayment),
   userController.deleteUserPayment
 );
@@ -102,7 +102,7 @@ router.delete('/payments/:paymentId',
 router.put('/payments/:paymentId/set-default',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateParams(userValidators.setDefaultPayment),
   userController.setDefaultPayment
 );
@@ -146,7 +146,7 @@ router.get('/:userId',
 router.put('/:userId',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateParams(userValidators.updateUser),
   validateBody(userValidators.updateUser),
   userController.updateUser
@@ -155,7 +155,7 @@ router.put('/:userId',
 router.delete('/:userId',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateParams(userValidators.deleteUser),
   userController.deleteUser
 );
@@ -163,7 +163,7 @@ router.delete('/:userId',
 router.put('/:userId/status',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateParams(userValidators.updateUserStatus),
   validateBody(userValidators.updateUserStatus),
   userController.updateUserStatus
@@ -172,7 +172,7 @@ router.put('/:userId/status',
 router.put('/:userId/role',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateParams(userValidators.updateUserRole),
   validateBody(userValidators.updateUserRole),
   userController.updateUserRole

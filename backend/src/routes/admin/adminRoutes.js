@@ -7,7 +7,6 @@ const adminController = require('../../controllers/admin/adminController');
 // Import middleware
 const { authenticate, requireAdmin } = require('../../middleware/auth/authMiddleware');
 const { validateQuery } = require('../../middleware/validation/validationMiddleware');
-const { adminLimiter } = require('../../middleware/rateLimiter');
 
 // Import validation schemas
 const { adminValidators } = require('../../validators/adminValidators');
@@ -24,7 +23,7 @@ router.get('/dashboard',
 router.get('/users',
   authenticate,
   requireAdmin,
-  validateQuery(adminValidators.getUsers),
+  validateQuery(adminValidators.getUsers),  // TODO: add pagination
   adminController.getUsers
 );
 

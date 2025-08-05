@@ -7,7 +7,7 @@ const productController = require('../../controllers/products/productController'
 // Import middleware
 const { authenticate, requireAdmin, requireBuyer, optionalAuth } = require('../../middleware/auth/authMiddleware');
 const { validateBody, validateQuery, validateParams } = require('../../middleware/validation/validationMiddleware');
-const { apiLimiter } = require('../../middleware/rateLimiter');
+
 
 // Import validation schemas
 const { productValidators } = require('../../validators/productValidators');
@@ -49,7 +49,7 @@ router.get('/subcategory/:subCategoryId',
 router.post('/',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateBody(productValidators.createProduct),
   productController.createProduct
 );
@@ -57,7 +57,7 @@ router.post('/',
 router.put('/:id',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateParams(productValidators.updateProduct),
   validateBody(productValidators.updateProduct),
   productController.updateProduct
@@ -66,7 +66,7 @@ router.put('/:id',
 router.delete('/:id',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateParams(productValidators.deleteProduct),
   productController.deleteProduct
 );
@@ -74,7 +74,7 @@ router.delete('/:id',
 router.post('/bulk-import',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   productController.bulkImportProducts
 );
 
@@ -107,7 +107,7 @@ router.get('/stats/out-of-stock',
 router.put('/:id/status',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateParams(productValidators.updateProductStatus),
   validateBody(productValidators.updateProductStatus),
   productController.updateProductStatus
@@ -116,7 +116,7 @@ router.put('/:id/status',
 router.put('/:id/stock',
   authenticate,
   requireAdmin,
-  apiLimiter,
+
   validateParams(productValidators.updateProductStock),
   validateBody(productValidators.updateProductStock),
   productController.updateProductStock

@@ -7,7 +7,7 @@ const stripeController = require('../../controllers/stripe/stripeController');
 // Import middleware
 const { authenticate, requireBuyer } = require('../../middleware/auth/authMiddleware');
 const { validateBody, validateParams } = require('../../middleware/validation/validationMiddleware');
-const { apiLimiter } = require('../../middleware/rateLimiter');
+
 
 // Import validation schemas
 const { stripeValidators } = require('../../validators/stripeValidators');
@@ -16,7 +16,7 @@ const { stripeValidators } = require('../../validators/stripeValidators');
 router.post('/create-payment-intent',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateBody(stripeValidators.createPaymentIntent),
   stripeController.createPaymentIntent
 );
@@ -24,7 +24,7 @@ router.post('/create-payment-intent',
 router.post('/confirm-payment',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateBody(stripeValidators.confirmPayment),
   stripeController.confirmPayment
 );
@@ -40,7 +40,7 @@ router.get('/payment-intent/:intentId',
 router.post('/create-customer',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateBody(stripeValidators.createCustomer),
   stripeController.createCustomer
 );
@@ -49,7 +49,7 @@ router.post('/create-customer',
 router.post('/create-payment-method',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateBody(stripeValidators.createPaymentMethod),
   stripeController.createPaymentMethod
 );
@@ -57,7 +57,7 @@ router.post('/create-payment-method',
 router.post('/attach-payment-method',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateBody(stripeValidators.attachPaymentMethod),
   stripeController.attachPaymentMethod
 );
@@ -66,7 +66,7 @@ router.post('/attach-payment-method',
 router.post('/create-refund',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateBody(stripeValidators.createRefund),
   stripeController.createRefund
 );

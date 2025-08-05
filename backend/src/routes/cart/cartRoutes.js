@@ -7,7 +7,7 @@ const cartController = require('../../controllers/cart/cartController');
 // Import middleware
 const { authenticate, requireBuyer } = require('../../middleware/auth/authMiddleware');
 const { validateBody, validateParams, validateQuery } = require('../../middleware/validation/validationMiddleware');
-const { apiLimiter } = require('../../middleware/rateLimiter');
+
 
 // Import validation schemas
 const { cartValidators } = require('../../validators/cartValidators');
@@ -29,7 +29,7 @@ router.get('/',
 router.post('/add',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateBody(cartValidators.addToCart),
   cartController.addToCart
 );
@@ -38,7 +38,7 @@ router.post('/add',
 router.put('/items/:itemId',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateParams(cartValidators.updateCartItem),
   validateBody(cartValidators.updateCartItem),
   cartController.updateCartItem
@@ -48,7 +48,7 @@ router.put('/items/:itemId',
 router.delete('/items/:itemId',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateParams(cartValidators.removeFromCart),
   cartController.removeFromCart
 );
@@ -57,7 +57,7 @@ router.delete('/items/:itemId',
 router.delete('/clear',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   cartController.clearCart
 );
 
@@ -79,7 +79,7 @@ router.get('/validate',
 router.post('/apply-coupon',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateBody(cartValidators.applyCoupon),
   cartController.applyCoupon
 );
@@ -88,7 +88,7 @@ router.post('/apply-coupon',
 router.delete('/remove-coupon',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   cartController.removeCoupon
 );
 
@@ -96,7 +96,7 @@ router.delete('/remove-coupon',
 router.post('/save',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateBody(cartValidators.saveCart),
   cartController.saveCart
 );
@@ -113,7 +113,7 @@ router.get('/saved',
 router.post('/load/:cartId',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateParams(cartValidators.loadSavedCart),
   cartController.loadSavedCart
 );
@@ -122,7 +122,7 @@ router.post('/load/:cartId',
 router.delete('/saved/:cartId',
   authenticate,
   requireBuyer,
-  apiLimiter,
+
   validateParams(cartValidators.deleteSavedCart),
   cartController.deleteSavedCart
 );

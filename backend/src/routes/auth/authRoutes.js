@@ -7,7 +7,6 @@ const authController = require('../../controllers/auth/authController');
 // Import middleware
 const { authenticate, requireEmailVerification } = require('../../middleware/auth/authMiddleware');
 const { validateBody } = require('../../middleware/validation/validationMiddleware');
-const { authLimiter } = require('../../middleware/rateLimiter');
 
 // Import validation schemas
 const { authValidators } = require('../../validators/authValidators');
@@ -19,13 +18,11 @@ const { authValidators } = require('../../validators/authValidators');
 
 // Public routes (no authentication required)
 router.post('/register', 
-  authLimiter,
   validateBody(authValidators.register),
   authController.register
 );
 
 router.post('/login', 
-  authLimiter,
   validateBody(authValidators.login),
   authController.login
 );
@@ -36,13 +33,11 @@ router.get('/google/callback', authController.googleCallback);
 
 // Password reset routes
 router.post('/forgot-password',
-  authLimiter,
   validateBody(authValidators.forgotPassword),
   authController.forgotPassword
 );
 
 router.post('/reset-password',
-  authLimiter,
   validateBody(authValidators.resetPassword),
   authController.resetPassword
 );
@@ -55,7 +50,6 @@ router.post('/verify-email',
 
 // Protected routes (authentication required)
 router.post('/refresh',
-  authLimiter,
   authController.refreshToken
 );
 

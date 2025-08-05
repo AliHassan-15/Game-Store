@@ -7,7 +7,6 @@ const reviewController = require('../../controllers/reviews/reviewController');
 // Import middleware
 const { authenticate, requireAdmin, requireBuyer, optionalAuth } = require('../../middleware/auth/authMiddleware');
 const { validateBody, validateParams, validateQuery } = require('../../middleware/validation/validationMiddleware');
-const { reviewLimiter, apiLimiter } = require('../../middleware/rateLimiter');
 
 // Import validation schemas
 const { reviewValidators } = require('../../validators/reviewValidators');
@@ -30,7 +29,6 @@ router.get('/:reviewId',
 router.post('/product/:productId',
   authenticate,
   requireBuyer,
-  reviewLimiter,
   validateParams(reviewValidators.createReview),
   validateBody(reviewValidators.createReview),
   reviewController.createReview
@@ -39,7 +37,6 @@ router.post('/product/:productId',
 router.put('/:reviewId',
   authenticate,
   requireBuyer,
-  reviewLimiter,
   validateParams(reviewValidators.updateReview),
   validateBody(reviewValidators.updateReview),
   reviewController.updateReview
@@ -48,7 +45,6 @@ router.put('/:reviewId',
 router.delete('/:reviewId',
   authenticate,
   requireBuyer,
-  reviewLimiter,
   validateParams(reviewValidators.deleteReview),
   reviewController.deleteReview
 );
@@ -71,7 +67,6 @@ router.get('/',
 router.put('/:reviewId/status',
   authenticate,
   requireAdmin,
-  apiLimiter,
   validateParams(reviewValidators.updateReviewStatus),
   validateBody(reviewValidators.updateReviewStatus),
   reviewController.updateReviewStatus
@@ -80,7 +75,6 @@ router.put('/:reviewId/status',
 router.delete('/:reviewId/admin',
   authenticate,
   requireAdmin,
-  apiLimiter,
   validateParams(reviewValidators.deleteReviewAdmin),
   reviewController.deleteReviewAdmin
 );
@@ -124,7 +118,6 @@ router.get('/reported',
 router.post('/:reviewId/report',
   authenticate,
   requireBuyer,
-  reviewLimiter,
   validateParams(reviewValidators.reportReview),
   validateBody(reviewValidators.reportReview),
   reviewController.reportReview
@@ -133,7 +126,6 @@ router.post('/:reviewId/report',
 router.post('/:reviewId/approve',
   authenticate,
   requireAdmin,
-  apiLimiter,
   validateParams(reviewValidators.approveReview),
   reviewController.approveReview
 );
@@ -141,7 +133,6 @@ router.post('/:reviewId/approve',
 router.post('/:reviewId/reject',
   authenticate,
   requireAdmin,
-  apiLimiter,
   validateParams(reviewValidators.rejectReview),
   validateBody(reviewValidators.rejectReview),
   reviewController.rejectReview
