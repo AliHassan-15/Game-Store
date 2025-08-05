@@ -4,11 +4,6 @@ const fs = require('fs').promises;
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../../utils/logger/logger');
 
-/**
- * Upload Middleware
- * Handles file uploads with validation and security checks
- */
-
 // Configure storage
 const createStorage = (destination) => {
   return multer.diskStorage({
