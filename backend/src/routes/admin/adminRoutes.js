@@ -23,7 +23,7 @@ router.get('/dashboard',
 router.get('/users',
   authenticate,
   requireAdmin,
-  validateQuery(adminValidators.getUsers),  // TODO: add pagination
+  validateQuery(adminValidators.getUsers),
   adminController.getUsers
 );
 
