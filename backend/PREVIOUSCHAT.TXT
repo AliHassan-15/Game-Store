@@ -216,7 +216,7 @@ CHATBOT-AGENT ANSWER:
 I understand your project requirements completely! Let me summarize what I've grasped:
 Project Overview
 You want to build a GameStore e-commerce application with the following tech stack:
-Backend: Express.js + PostgreSQL + Sequelize + Redis + JWT + Stripe
+Backend: Express.js + PostgreSQL + Sequelize + Redis + JWT + Stripe (session cookies redis access/refreah tokens Implementation)
 Frontend: React (TSX) + Vite + Tailwind CSS + Shadcn UI + Framer Motion
 Core Features I Understand:
 User Management
