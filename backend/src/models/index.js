@@ -15,11 +15,6 @@ const UserAddress = require('./UserAddress');
 const UserPayment = require('./UserPayment');
 const ActivityLog = require('./ActivityLog');
 
-/**
- * Define Model Associations
- * This establishes all the relationships between models
- */
-
 // User Associations
 User.hasMany(Cart, {
   foreignKey: 'userId',

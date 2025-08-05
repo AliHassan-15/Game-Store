@@ -1,16 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
-/**
- * Order Model - Represents customer orders
- * 
- * This model handles:
- * - Order information and status tracking
- * - Customer and shipping details
- * - Payment information and totals
- * - Order lifecycle management
- * - Order history and tracking
- */
 const Order = sequelize.define('Order', {
   // Primary identifier
   id: {

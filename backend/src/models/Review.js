@@ -1,15 +1,5 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-
-/**
- * Review Model - Represents product reviews and ratings
- * 
- * This model handles:
- * - Product reviews and ratings from customers
- * - Review moderation and approval
- * - Review helpfulness tracking
- * - Review analytics and statistics
- */
 const Review = sequelize.define('Review', {
   // Primary identifier
   id: {

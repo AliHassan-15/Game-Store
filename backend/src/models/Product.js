@@ -1,17 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
-/**
- * Product Model - Represents game products in the store
- * 
- * This model handles:
- * - Product information (name, description, price, images)
- * - Inventory management (stock quantity, SKU)
- * - Product categorization (category, subcategory)
- * - Product status and visibility
- * - SEO and marketing fields
- * - Product variants and specifications
- */
 const Product = sequelize.define('Product', {
   // Primary identifier
   id: {

@@ -1,15 +1,5 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-
-/**
- * ActivityLog Model - Tracks system activities and user actions
- * 
- * This model handles:
- * - User activity logging and tracking
- * - System event logging
- * - Audit trail for security and compliance
- * - Activity analytics and reporting
- */
 const ActivityLog = sequelize.define('ActivityLog', {
   // Primary identifier
   id: {

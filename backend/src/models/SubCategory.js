@@ -1,15 +1,5 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-
-/**
- * SubCategory Model - Represents subcategories within main categories
- * 
- * This model handles:
- * - Subcategories within main categories (e.g., "Action Games" under "Gaming")
- * - Product organization hierarchy
- * - Admin category management
- * - Product filtering and navigation
- */
 const SubCategory = sequelize.define('SubCategory', {
   // Primary identifier
   id: {

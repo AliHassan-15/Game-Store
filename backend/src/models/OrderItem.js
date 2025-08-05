@@ -1,15 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
-/**
- * OrderItem Model - Represents individual items in orders
- * 
- * This model handles:
- * - Individual order items with quantities and pricing
- * - Product references and price snapshots
- * - Item-specific calculations and totals
- * - Order item history and tracking
- */
 const OrderItem = sequelize.define('OrderItem', {
   // Primary identifier
   id: {

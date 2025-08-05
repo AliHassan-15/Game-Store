@@ -1,15 +1,5 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-
-/**
- * UserPayment Model - Manages user payment methods and payment information
- * 
- * This model handles:
- * - User payment method storage (Stripe payment methods)
- * - Payment method validation and security
- * - Default payment method selection
- * - Payment method history and tracking
- */
 const UserPayment = sequelize.define('UserPayment', {
   // Primary identifier
   id: {

@@ -2,16 +2,6 @@ const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const { sequelize } = require('../config/database');
 
-/**
- * User Model - Represents users in the system (Admin/Buyer)
- * 
- * This model handles:
- * - User authentication (email/password + Google OAuth)
- * - User roles (admin/buyer)
- * - User profile information
- * - Account verification and status
- * - Password management with bcrypt hashing
- */
 const User = sequelize.define('User', {
   // Primary identifier
   id: {

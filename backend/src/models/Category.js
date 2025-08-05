@@ -1,15 +1,5 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-
-/**
- * Category Model - Represents main product categories
- * 
- * This model handles:
- * - Main product categories (e.g., "Gaming", "Electronics", "Accessories")
- * - Category management for admin
- * - Product organization
- * - Category hierarchy (parent-child relationships)
- */
 const Category = sequelize.define('Category', {
   // Primary identifier
   id: {

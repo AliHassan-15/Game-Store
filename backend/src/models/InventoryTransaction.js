@@ -1,15 +1,5 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-
-/**
- * InventoryTransaction Model - Tracks inventory changes and stock movements
- * 
- * This model handles:
- * - Stock additions and removals
- * - Inventory adjustments and corrections
- * - Stock movement history and audit trail
- * - Inventory analytics and reporting
- */
 const InventoryTransaction = sequelize.define('InventoryTransaction', {
   // Primary identifier
   id: {

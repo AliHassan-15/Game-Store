@@ -1,16 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
-/**
- * Cart Model - Represents user shopping carts
- * 
- * This model handles:
- * - User shopping cart management
- * - Cart items and quantities
- * - Cart totals and calculations
- * - Cart expiration and cleanup
- * - Guest cart support
- */
 const Cart = sequelize.define('Cart', {
   // Primary identifier
   id: {

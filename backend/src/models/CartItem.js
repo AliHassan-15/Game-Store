@@ -1,16 +1,5 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-
-/**
- * CartItem Model - Represents individual items in shopping carts
- * 
- * This model handles:
- * - Individual cart items with quantities
- * - Product references and pricing
- * - Item-specific calculations
- * - Stock validation
- * - Price tracking for cart items
- */
 const CartItem = sequelize.define('CartItem', {
   // Primary identifier
   id: {

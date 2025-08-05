@@ -1,15 +1,5 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-
-/**
- * UserAddress Model - Manages user shipping and billing addresses
- * 
- * This model handles:
- * - User address management (shipping and billing)
- * - Address validation and formatting
- * - Default address selection
- * - Address history and tracking
- */
 const UserAddress = sequelize.define('UserAddress', {
   // Primary identifier
   id: {
