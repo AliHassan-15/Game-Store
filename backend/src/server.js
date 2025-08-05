@@ -133,34 +133,8 @@ app.use('/api/v1/admin', adminLimiter);
 // General API rate limiting
 app.use('/api', apiLimiter);
 
-// API routes - mount the main routes file
+// Mount all routes
 app.use('/', routes);
-
-// Stripe webhook endpoint (no body parsing for webhooks)
-app.post('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }), asyncHandler(async (req, res) => {
-  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-  const paymentService = require('./services/payment/paymentService');
-  
-  const sig = req.headers['stripe-signature'];
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  
-  let event;
-  
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-  } catch (err) {
-    logger.error('Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-  
-  try {
-    await paymentService.handleWebhookEvent(event);
-    res.json({ received: true });
-  } catch (error) {
-    logger.error('Webhook processing error:', error);
-    res.status(500).json({ error: 'Webhook processing failed' });
-  }
-}));
 
 // 404 handler for undefined routes
 app.use(notFoundHandler);
