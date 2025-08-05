@@ -2,246 +2,328 @@ const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const bcrypt = require('bcryptjs');
+const { User } = require('../models');
+const { redisUtils } = require('./redis');
 const logger = require('../utils/logger/logger');
 
-// Passport configuration with camelCase variables
-const passportConfig = {
-  googleClientId: process.env.GOOGLE_CLIENT_ID,
-  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL
-};
+// Session serialization
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
 
-// Import User model (will be available after models are created)
-let UserModel;
-
-// Initialize passport with User model
-const initializePassport = (UserModel) => {
-  UserModel = UserModel;
-  
-  // Serialize user for session
-  passport.serializeUser((user, done) => {
-    done(null, user.id);
-  });
-
-  // Deserialize user from session
-  passport.deserializeUser(async (userId, done) => {
-    try {
-      const user = await UserModel.findByPk(userId);
-      done(null, user);
-    } catch (error) {
-      logger.error('Passport deserialize error:', error.message);
-      done(error, null);
+// Session deserialization
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await User.findByPk(id);
+    if (!user || !user.isActive) {
+      return done(null, false);
     }
-  });
+    done(null, user);
+  } catch (error) {
+    logger.error('Session deserialization error:', error);
+    done(error);
+  }
+});
 
-  // Local Strategy for email/password authentication
-  passport.use(new LocalStrategy({
-    usernameField: 'email',
-    passwordField: 'password',
-    passReqToCallback: true
-  }, async (request, email, password, done) => {
-    try {
-      // Find user by email
-      const user = await UserModel.findOne({ 
-        where: { email: email.toLowerCase() },
-        include: ['addresses', 'payments']
+// Local Strategy
+passport.use(new LocalStrategy({
+  usernameField: 'email',
+  passwordField: 'password',
+  passReqToCallback: true
+}, async (req, email, password, done) => {
+  try {
+    // Find user by email
+    const user = await User.findOne({ where: { email: email.toLowerCase() } });
+    
+    if (!user) {
+      return done(null, false, { message: 'Invalid email or password' });
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return done(null, false, { message: 'Account is deactivated' });
+    }
+
+    // Check if user has password (not OAuth user)
+    if (!user.password) {
+      return done(null, false, { message: 'Please use Google login for this account' });
+    }
+
+    // Verify password
+    const isValidPassword = await user.comparePassword(password);
+    if (!isValidPassword) {
+      return done(null, false, { message: 'Invalid email or password' });
+    }
+
+    // Update last login
+    await user.update({ lastLogin: new Date() });
+
+    // Log successful login
+    logger.info(`User logged in: ${user.email}`);
+
+    return done(null, user);
+  } catch (error) {
+    logger.error('Local authentication error:', error);
+    return done(error);
+  }
+}));
+
+// Google OAuth Strategy
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: process.env.GOOGLE_CALLBACK_URL || '/api/v1/auth/google/callback',
+  passReqToCallback: true
+}, async (req, accessToken, refreshToken, profile, done) => {
+  try {
+    const { id, displayName, emails, photos } = profile;
+    
+    // Check if user already exists
+    let user = await User.findOne({ 
+      where: { googleId: id } 
+    });
+
+    if (user) {
+      // Update existing user
+      await user.update({
+        lastLogin: new Date(),
+        avatar: photos?.[0]?.value || user.avatar
       });
-
-      if (!user) {
-        logger.warn(`Login attempt failed: User not found - ${email}`);
-        return done(null, false, { message: 'Invalid email or password' });
-      }
-
-      // Check if user is active
-      if (!user.is_active) {
-        logger.warn(`Login attempt failed: Inactive user - ${email}`);
-        return done(null, false, { message: 'Account is deactivated' });
-      }
-
-      // Verify password
-      const isValidPassword = await user.comparePassword(password);
-      if (!isValidPassword) {
-        logger.warn(`Login attempt failed: Invalid password - ${email}`);
-        return done(null, false, { message: 'Invalid email or password' });
-      }
-
-      // Update last login
-      await user.update({ last_login: new Date() });
-
-      logger.info(`User logged in successfully: ${email}`);
+      
+      logger.info(`Google OAuth user logged in: ${user.email}`);
       return done(null, user);
-    } catch (error) {
-      logger.error('Local strategy error:', error.message);
-      return done(error, null);
     }
-  }));
 
-  // Google OAuth Strategy
-  passport.use(new GoogleStrategy({
-    clientID: passportConfig.googleClientId,
-    clientSecret: passportConfig.googleClientSecret,
-    callbackURL: passportConfig.googleCallbackUrl,
-    passReqToCallback: true
-  }, async (request, accessToken, refreshToken, profile, done) => {
-    try {
-      // Check if user already exists
-      let user = await UserModel.findOne({ 
-        where: { google_id: profile.id },
-        include: ['addresses', 'payments']
-      });
-
-      if (user) {
-        // Update last login for existing user
-        await user.update({ last_login: new Date() });
-        logger.info(`Google OAuth login: Existing user - ${user.email}`);
-        return done(null, user);
-      }
-
-      // Check if email already exists (user might have signed up with email first)
-      user = await UserModel.findOne({ 
-        where: { email: profile.emails[0].value.toLowerCase() },
-        include: ['addresses', 'payments']
-      });
-
+    // Check if email already exists (different OAuth provider or local account)
+    const email = emails?.[0]?.value;
+    if (email) {
+      user = await User.findOne({ where: { email: email.toLowerCase() } });
+      
       if (user) {
         // Link Google account to existing user
-        await user.update({ 
-          google_id: profile.id,
-          last_login: new Date()
+        await user.update({
+          googleId: id,
+          isVerified: true,
+          lastLogin: new Date(),
+          avatar: photos?.[0]?.value || user.avatar
         });
-        logger.info(`Google OAuth login: Linked to existing user - ${user.email}`);
+        
+        logger.info(`Google OAuth linked to existing account: ${user.email}`);
         return done(null, user);
       }
-
-      // Create new user from Google profile
-      const newUser = await UserModel.create({
-        email: profile.emails[0].value.toLowerCase(),
-        firstName: profile.name.givenName || profile.displayName.split(' ')[0],
-        lastName: profile.name.familyName || profile.displayName.split(' ').slice(1).join(' ') || '',
-        google_id: profile.id,
-        avatar: profile.photos[0]?.value || null,
-        is_verified: true, // Google accounts are pre-verified
-        is_active: true,
-        role: 'buyer' // Default role for new users
-      });
-
-      logger.info(`Google OAuth login: New user created - ${newUser.email}`);
-      return done(null, newUser);
-    } catch (error) {
-      logger.error('Google strategy error:', error.message);
-      return done(error, null);
     }
-  }));
 
-  logger.info('Passport strategies configured successfully');
-};
+    // Create new user
+    const [firstName, ...lastNameParts] = displayName.split(' ');
+    const lastName = lastNameParts.join(' ') || '';
+
+    user = await User.create({
+      googleId: id,
+      email: email,
+      firstName: firstName || '',
+      lastName: lastName || '',
+      avatar: photos?.[0]?.value,
+      isVerified: true,
+      role: 'buyer',
+      isActive: true
+    });
+
+    logger.info(`New Google OAuth user created: ${user.email}`);
+    return done(null, user);
+  } catch (error) {
+    logger.error('Google OAuth authentication error:', error);
+    return done(error);
+  }
+}));
+
+// Session Strategy (for Redis-based sessions)
+passport.use('session', new LocalStrategy({
+  usernameField: 'sessionId',
+  passwordField: 'token',
+  passReqToCallback: true
+}, async (req, sessionId, token, done) => {
+  try {
+    // Get session from Redis
+    const session = await redisUtils.getSession(sessionId);
+    
+    if (!session || !session.token || session.token !== token) {
+      return done(null, false, { message: 'Invalid session' });
+    }
+
+    // Get user from database
+    const user = await User.findByPk(session.userId);
+    
+    if (!user || !user.isActive) {
+      return done(null, false, { message: 'User not found or inactive' });
+    }
+
+    return done(null, user);
+  } catch (error) {
+    logger.error('Session authentication error:', error);
+    return done(error);
+  }
+}));
 
 // Authentication middleware
-const passportMiddleware = {
-  // Authenticate with local strategy
-  authenticateLocal: passport.authenticate('local', { 
-    session: false,
-    failWithError: true 
-  }),
+const isAuthenticated = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({
+    success: false,
+    message: 'Authentication required'
+  });
+};
 
-  // Authenticate with Google OAuth
-  authenticateGoogle: passport.authenticate('google', { 
-    scope: ['profile', 'email'],
-    accessType: 'offline',
-    prompt: 'consent'
-  }),
-
-  // Handle Google OAuth callback
-  authenticateGoogleCallback: passport.authenticate('google', { 
-    session: false,
-    failWithError: true 
-  }),
-
-  // Check if user is authenticated
-  isAuthenticated: (request, response, next) => {
-    if (request.isAuthenticated()) {
-      return next();
+// Role-based authorization middleware
+const hasRole = (...roles) => {
+  return (req, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
     }
-    return response.status(401).json({ 
-      success: false, 
-      message: 'Authentication required' 
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Insufficient permissions'
+      });
+    }
+
+    next();
+  };
+};
+
+// Admin authorization middleware
+const isAdmin = (req, res, next) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required'
     });
-  },
+  }
 
-  // Check if user has specific role
-  hasRole: (allowedRoles) => {
-    return (request, response, next) => {
-      if (!request.isAuthenticated()) {
-        return response.status(401).json({ 
-          success: false, 
-          message: 'Authentication required' 
-        });
-      }
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Admin access required'
+    });
+  }
 
-      const userRole = request.user.role;
-      const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+  next();
+};
 
-      if (!rolesArray.includes(userRole)) {
-        return response.status(403).json({ 
-          success: false, 
-          message: 'Insufficient permissions' 
-        });
-      }
-
-      return next();
-    };
-  },
-
-  // Check if user is admin
-  isAdmin: (request, response, next) => {
-    if (!request.isAuthenticated()) {
-      return response.status(401).json({ 
-        success: false, 
-        message: 'Authentication required' 
-      });
-    }
-
-    if (request.user.role !== 'admin') {
-      return response.status(403).json({ 
-        success: false, 
-        message: 'Admin access required' 
-      });
-    }
-
+// Optional authentication middleware
+const optionalAuth = (req, res, next) => {
+  if (req.isAuthenticated()) {
     return next();
-  },
+  }
+  req.user = null;
+  next();
+};
 
-  // Optional authentication (user can be authenticated or not)
-  optionalAuth: (request, response, next) => {
-    if (request.isAuthenticated()) {
-      // User is authenticated, continue
-      return next();
+// Logout user
+const logoutUser = async (req, res, next) => {
+  try {
+    if (req.user) {
+      // Clear session from Redis
+      await redisUtils.deleteSession(req.user.id);
+      
+      // Log logout
+      logger.info(`User logged out: ${req.user.email}`);
     }
-    // User is not authenticated, but continue anyway
-    request.user = null;
-    return next();
+
+    // Clear session
+    req.logout((err) => {
+      if (err) {
+        logger.error('Logout error:', err);
+        return next(err);
+      }
+      
+      // Clear cookies
+      res.clearCookie('connect.sid');
+      res.clearCookie('accessToken');
+      res.clearCookie('refreshToken');
+      
+      next();
+    });
+  } catch (error) {
+    logger.error('Logout error:', error);
+    next(error);
   }
 };
 
-// Logout function
-const logoutUser = (request, response, next) => {
-  request.logout((error) => {
-    if (error) {
-      logger.error('Logout error:', error.message);
-      return next(error);
+// Initialize session
+const initializeSession = async (req, res, next) => {
+  try {
+    // Check for session cookie
+    const sessionId = req.cookies?.['connect.sid'];
+    
+    if (sessionId) {
+      // Get session from Redis
+      const session = await redisUtils.getSession(sessionId);
+      
+      if (session && session.userId) {
+        // Get user from database
+        const user = await User.findByPk(session.userId);
+        
+        if (user && user.isActive) {
+          req.user = user;
+          req.isAuthenticated = () => true;
+        }
+      }
     }
-    logger.info(`User logged out: ${request.user?.email || 'Unknown'}`);
-    response.json({ 
-      success: true, 
-      message: 'Logged out successfully' 
-    });
+    
+    next();
+  } catch (error) {
+    logger.error('Session initialization error:', error);
+    next();
+  }
+};
+
+// Session store for Redis
+const RedisStore = require('connect-redis').default;
+const session = require('express-session');
+
+const createSessionStore = (redisClient) => {
+  return new RedisStore({
+    client: redisClient,
+    prefix: 'sess:',
+    ttl: 24 * 60 * 60, // 24 hours
+    disableTouch: false
   });
+};
+
+// Session configuration
+const sessionConfig = {
+  store: null, // Will be set when Redis client is available
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  },
+  name: 'connect.sid'
+};
+
+// Initialize session store
+const initializeSessionStore = (redisClient) => {
+  sessionConfig.store = createSessionStore(redisClient);
 };
 
 module.exports = {
   passport,
-  passportConfig,
-  initializePassport,
-  passportMiddleware,
-  logoutUser
+  isAuthenticated,
+  hasRole,
+  isAdmin,
+  optionalAuth,
+  logoutUser,
+  initializeSession,
+  sessionConfig,
+  initializeSessionStore
 };

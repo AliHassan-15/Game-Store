@@ -1,17 +1,49 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
 const { User, ActivityLog } = require('../../models');
 const { redisUtils } = require('../../config/redis');
+const { 
+  generateAuthTokens, 
+  validateAndRefreshTokens, 
+  clearAuthCookies,
+  blacklistToken 
+} = require('../../middleware/auth/jwtMiddleware');
+const { 
+  authenticateLocal, 
+  authenticateGoogle, 
+  authenticateGoogleCallback,
+  logoutUser 
+} = require('../../middleware/auth/authMiddleware');
+const { validateBody } = require('../../middleware/validation/validationMiddleware');
+const { commonSchemas } = require('../../middleware/validation/validationMiddleware');
 const logger = require('../../utils/logger/logger');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+
+/**
+ * Auth Controller - Handles authentication and authorization
+ */
+
 class AuthController {
 
+  /**
+   * Register new user
+   * POST /api/v1/auth/register
+   */
   async register(req, res) {
     try {
-      const { email, password, firstName, lastName, phone, role = 'buyer' } = req.body;
+      const { 
+        firstName, 
+        lastName, 
+        email, 
+        password, 
+        phone,
+        role = 'buyer'
+      } = req.body;
 
       // Check if user already exists
-      const existingUser = await User.findByEmail(email);
+      const existingUser = await User.findOne({ 
+        where: { email: email.toLowerCase() } 
+      });
+
       if (existingUser) {
         return res.status(400).json({
           success: false,
@@ -19,47 +51,58 @@ class AuthController {
         });
       }
 
-      // Create new user
+      // Create user
       const user = await User.create({
-        email,
-        password,
         firstName,
         lastName,
+        email: email.toLowerCase(),
+        password,
         phone,
-        role
+        role,
+        isActive: true,
+        isVerified: false
       });
 
-      // Generate JWT token
-      const token = jwt.sign(
-        { userId: user.id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
+      // Generate email verification token
+      const verificationToken = user.generateEmailVerificationToken();
+      await user.save();
+
+      // Generate authentication tokens
+      const { accessToken, refreshToken } = await generateAuthTokens(
+        user.id, 
+        user.role, 
+        res
       );
-
-      // Store session in Redis
-      await redisUtils.storeSession(user.id, {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        token
-      });
 
       // Log activity
       await ActivityLog.createUserActivity(
         user.id,
         'user_register',
         'User registered successfully',
-        { email, role }
+        { 
+          email: user.email,
+          role: user.role
+        }
       );
 
-      logger.info(`New user registered: ${email}`);
+      logger.info(`New user registered: ${user.email}`);
 
       res.status(201).json({
         success: true,
-        message: 'User registered successfully',
+        message: 'User registered successfully. Please check your email to verify your account.',
         data: {
-          user: user.toJSON(),
-          token
+          user: {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role,
+            isVerified: user.isVerified
+          },
+          tokens: {
+            accessToken,
+            refreshToken
+          }
         }
       });
 
@@ -74,15 +117,18 @@ class AuthController {
   }
 
   /**
-   * Login user
+   * Login user (local authentication)
    * POST /api/v1/auth/login
    */
   async login(req, res) {
     try {
       const { email, password } = req.body;
 
-      // Find user by email
-      const user = await User.findByEmail(email);
+      // Find user
+      const user = await User.findOne({ 
+        where: { email: email.toLowerCase() } 
+      });
+
       if (!user) {
         return res.status(401).json({
           success: false,
@@ -98,6 +144,14 @@ class AuthController {
         });
       }
 
+      // Check if user has password (not OAuth user)
+      if (!user.password) {
+        return res.status(401).json({
+          success: false,
+          message: 'Please use Google login for this account'
+        });
+      }
+
       // Verify password
       const isValidPassword = await user.comparePassword(password);
       if (!isValidPassword) {
@@ -110,37 +164,43 @@ class AuthController {
       // Update last login
       await user.update({ lastLogin: new Date() });
 
-      // Generate JWT token
-      const token = jwt.sign(
-        { userId: user.id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
+      // Generate authentication tokens
+      const { accessToken, refreshToken } = await generateAuthTokens(
+        user.id, 
+        user.role, 
+        res
       );
-
-      // Store session in Redis
-      await redisUtils.storeSession(user.id, {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        token
-      });
 
       // Log activity
       await ActivityLog.createUserActivity(
         user.id,
         'user_login',
         'User logged in successfully',
-        { email, ipAddress: req.ip }
+        { 
+          email: user.email,
+          loginMethod: 'local'
+        }
       );
 
-      logger.info(`User logged in: ${email}`);
+      logger.info(`User logged in: ${user.email}`);
 
       res.json({
         success: true,
         message: 'Login successful',
         data: {
-          user: user.toJSON(),
-          token
+          user: {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role,
+            isVerified: user.isVerified,
+            avatar: user.avatar
+          },
+          tokens: {
+            accessToken,
+            refreshToken
+          }
         }
       });
 
@@ -155,29 +215,150 @@ class AuthController {
   }
 
   /**
+   * Google OAuth login
+   * GET /api/v1/auth/google
+   */
+  async googleLogin(req, res, next) {
+    authenticateGoogle(req, res, next);
+  }
+
+  /**
+   * Google OAuth callback
+   * GET /api/v1/auth/google/callback
+   */
+  async googleCallback(req, res, next) {
+    try {
+      authenticateGoogleCallback(req, res, async (err) => {
+        if (err) {
+          logger.error('Google OAuth callback error:', err);
+          return res.status(500).json({
+            success: false,
+            message: 'Google authentication failed'
+          });
+        }
+
+        if (!req.user) {
+          return res.status(401).json({
+            success: false,
+            message: 'Google authentication failed'
+          });
+        }
+
+        // Generate authentication tokens
+        const { accessToken, refreshToken } = await generateAuthTokens(
+          req.user.id, 
+          req.user.role, 
+          res
+        );
+
+        // Log activity
+        await ActivityLog.createUserActivity(
+          req.user.id,
+          'user_login',
+          'User logged in via Google OAuth',
+          { 
+            email: req.user.email,
+            loginMethod: 'google'
+          }
+        );
+
+        logger.info(`User logged in via Google: ${req.user.email}`);
+
+        // Redirect to frontend with tokens
+        const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`;
+        res.redirect(redirectUrl);
+
+      });
+    } catch (error) {
+      logger.error('Google OAuth callback error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Google authentication failed'
+      });
+    }
+  }
+
+  /**
+   * Refresh access token
+   * POST /api/v1/auth/refresh
+   */
+  async refreshToken(req, res) {
+    try {
+      const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+
+      if (!refreshToken) {
+        return res.status(400).json({
+          success: false,
+          message: 'Refresh token required'
+        });
+      }
+
+      // Validate and refresh tokens
+      const result = await validateAndRefreshTokens(req, res);
+
+      if (!result.success) {
+        return res.status(401).json({
+          success: false,
+          message: result.error
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Token refreshed successfully',
+        data: {
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken
+        }
+      });
+
+    } catch (error) {
+      logger.error('Token refresh error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Token refresh failed',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
    * Logout user
    * POST /api/v1/auth/logout
    */
   async logout(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user?.id;
+      const token = req.cookies?.accessToken || req.headers.authorization?.split(' ')[1];
 
-      // Delete session from Redis
-      await redisUtils.deleteSession(userId);
+      if (token) {
+        // Blacklist the token
+        await blacklistToken(token);
+      }
 
-      // Log activity
-      await ActivityLog.createUserActivity(
-        userId,
-        'user_logout',
-        'User logged out successfully',
-        { email: req.user.email }
-      );
+      if (userId) {
+        // Clear session from Redis
+        await redisUtils.deleteSession(userId);
 
-      logger.info(`User logged out: ${req.user.email}`);
+        // Log activity
+        await ActivityLog.createUserActivity(
+          userId,
+          'user_logout',
+          'User logged out',
+          { 
+            email: req.user.email
+          }
+        );
+
+        logger.info(`User logged out: ${req.user.email}`);
+      }
+
+      // Clear cookies
+      clearAuthCookies(res);
 
       res.json({
         success: true,
-        message: 'Logout successful'
+        message: 'Logged out successfully'
       });
 
     } catch (error) {
@@ -197,10 +378,7 @@ class AuthController {
   async getProfile(req, res) {
     try {
       const user = await User.findByPk(req.user.id, {
-        include: [
-          { model: require('../../models').UserAddress, as: 'addresses' },
-          { model: require('../../models').UserPayment, as: 'payments' }
-        ]
+        include: ['addresses', 'payments']
       });
 
       if (!user) {
@@ -213,7 +391,21 @@ class AuthController {
       res.json({
         success: true,
         data: {
-          user: user.toJSON()
+          user: {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            phone: user.phone,
+            avatar: user.avatar,
+            role: user.role,
+            isVerified: user.isVerified,
+            isActive: user.isActive,
+            lastLogin: user.lastLogin,
+            createdAt: user.createdAt,
+            addresses: user.addresses || [],
+            payments: user.payments || []
+          }
         }
       });
 
@@ -234,9 +426,8 @@ class AuthController {
   async updateProfile(req, res) {
     try {
       const { firstName, lastName, phone, avatar } = req.body;
-      const userId = req.user.id;
 
-      const user = await User.findByPk(userId);
+      const user = await User.findByPk(req.user.id);
       if (!user) {
         return res.status(404).json({
           success: false,
@@ -244,7 +435,7 @@ class AuthController {
         });
       }
 
-      // Update user profile
+      // Update user
       await user.update({
         firstName: firstName || user.firstName,
         lastName: lastName || user.lastName,
@@ -254,10 +445,12 @@ class AuthController {
 
       // Log activity
       await ActivityLog.createUserActivity(
-        userId,
-        'user_update',
+        user.id,
+        'user_profile_update',
         'User profile updated',
-        { updatedFields: Object.keys(req.body) }
+        { 
+          updatedFields: Object.keys(req.body).filter(key => req.body[key] !== undefined)
+        }
       );
 
       logger.info(`User profile updated: ${user.email}`);
@@ -266,7 +459,16 @@ class AuthController {
         success: true,
         message: 'Profile updated successfully',
         data: {
-          user: user.toJSON()
+          user: {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            phone: user.phone,
+            avatar: user.avatar,
+            role: user.role,
+            isVerified: user.isVerified
+          }
         }
       });
 
@@ -287,13 +489,20 @@ class AuthController {
   async changePassword(req, res) {
     try {
       const { currentPassword, newPassword } = req.body;
-      const userId = req.user.id;
 
-      const user = await User.findByPk(userId);
+      const user = await User.findByPk(req.user.id);
       if (!user) {
         return res.status(404).json({
           success: false,
           message: 'User not found'
+        });
+      }
+
+      // Check if user has password (not OAuth user)
+      if (!user.password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot change password for OAuth accounts'
         });
       }
 
@@ -307,17 +516,20 @@ class AuthController {
       }
 
       // Update password
-      await user.update({ password: newPassword });
+      user.password = newPassword;
+      await user.save();
 
       // Log activity
       await ActivityLog.createUserActivity(
-        userId,
-        'user_update',
-        'Password changed successfully',
-        { email: user.email }
+        user.id,
+        'user_password_change',
+        'User password changed',
+        { 
+          email: user.email
+        }
       );
 
-      logger.info(`Password changed for user: ${user.email}`);
+      logger.info(`User password changed: ${user.email}`);
 
       res.json({
         success: true,
@@ -335,59 +547,63 @@ class AuthController {
   }
 
   /**
-   * Request password reset
+   * Forgot password
    * POST /api/v1/auth/forgot-password
    */
   async forgotPassword(req, res) {
     try {
       const { email } = req.body;
 
-      const user = await User.findByEmail(email);
+      const user = await User.findOne({ where: { email: email.toLowerCase() } });
       if (!user) {
-        // Don't reveal if user exists or not for security
-        return res.json({
-          success: true,
-          message: 'If an account with that email exists, a password reset link has been sent'
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
         });
       }
 
-      // Generate reset token
+      // Check if user has password (not OAuth user)
+      if (!user.password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot reset password for OAuth accounts'
+        });
+      }
+
+      // Generate password reset token
       const resetToken = user.generatePasswordResetToken();
       await user.save();
 
       // TODO: Send email with reset link
-      // For now, just log the token (in production, send email)
-      logger.info(`Password reset token for ${email}: ${resetToken}`);
-
+      // For now, just return the token
       res.json({
         success: true,
-        message: 'If an account with that email exists, a password reset link has been sent'
+        message: 'Password reset email sent',
+        data: {
+          resetToken // Remove this in production
+        }
       });
 
     } catch (error) {
       logger.error('Forgot password error:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to process password reset request',
+        message: 'Failed to process forgot password request',
         error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   }
 
   /**
-   * Reset password with token
+   * Reset password
    * POST /api/v1/auth/reset-password
    */
   async resetPassword(req, res) {
     try {
       const { token, newPassword } = req.body;
 
-      // Find user with reset token
       const user = await User.findOne({
-        where: {
-          passwordResetToken: token,
-          passwordResetExpires: { [require('sequelize').Op.gt]: new Date() }
-        }
+        where: { passwordResetToken: token }
       });
 
       if (!user) {
@@ -397,22 +613,31 @@ class AuthController {
         });
       }
 
-      // Update password and clear reset token
-      await user.update({
-        password: newPassword,
-        passwordResetToken: null,
-        passwordResetExpires: null
-      });
+      // Check if token is expired
+      if (user.passwordResetExpires < new Date()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Reset token has expired'
+        });
+      }
+
+      // Update password
+      user.password = newPassword;
+      user.passwordResetToken = null;
+      user.passwordResetExpires = null;
+      await user.save();
 
       // Log activity
       await ActivityLog.createUserActivity(
         user.id,
-        'user_update',
-        'Password reset successfully',
-        { email: user.email }
+        'user_password_reset',
+        'User password reset',
+        { 
+          email: user.email
+        }
       );
 
-      logger.info(`Password reset for user: ${user.email}`);
+      logger.info(`User password reset: ${user.email}`);
 
       res.json({
         success: true,
@@ -431,42 +656,48 @@ class AuthController {
 
   /**
    * Verify email
-   * GET /api/v1/auth/verify-email/:token
+   * POST /api/v1/auth/verify-email
    */
   async verifyEmail(req, res) {
     try {
-      const { token } = req.params;
+      const { token } = req.body;
 
       const user = await User.findOne({
-        where: {
-          emailVerificationToken: token,
-          emailVerificationExpires: { [require('sequelize').Op.gt]: new Date() }
-        }
+        where: { emailVerificationToken: token }
       });
 
       if (!user) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid or expired verification token'
+          message: 'Invalid verification token'
         });
       }
 
-      // Mark email as verified
-      await user.update({
-        isVerified: true,
-        emailVerificationToken: null,
-        emailVerificationExpires: null
-      });
+      // Check if token is expired
+      if (user.emailVerificationExpires < new Date()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification token has expired'
+        });
+      }
+
+      // Verify email
+      user.isVerified = true;
+      user.emailVerificationToken = null;
+      user.emailVerificationExpires = null;
+      await user.save();
 
       // Log activity
       await ActivityLog.createUserActivity(
         user.id,
-        'user_update',
-        'Email verified successfully',
-        { email: user.email }
+        'user_email_verify',
+        'User email verified',
+        { 
+          email: user.email
+        }
       );
 
-      logger.info(`Email verified for user: ${user.email}`);
+      logger.info(`User email verified: ${user.email}`);
 
       res.json({
         success: true,
@@ -474,7 +705,7 @@ class AuthController {
       });
 
     } catch (error) {
-      logger.error('Email verification error:', error);
+      logger.error('Verify email error:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to verify email',
@@ -484,124 +715,30 @@ class AuthController {
   }
 
   /**
-   * Refresh JWT token
-   * POST /api/v1/auth/refresh-token
-   */
-  async refreshToken(req, res) {
-    try {
-      const userId = req.user.id;
-
-      const user = await User.findByPk(userId);
-      if (!user || !user.isActive) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid user or account deactivated'
-        });
-      }
-
-      // Generate new token
-      const newToken = jwt.sign(
-        { userId: user.id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-
-      // Update session in Redis
-      await redisUtils.storeSession(user.id, {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        token: newToken
-      });
-
-      res.json({
-        success: true,
-        message: 'Token refreshed successfully',
-        data: {
-          token: newToken
-        }
-      });
-
-    } catch (error) {
-      logger.error('Refresh token error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to refresh token',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
-    }
-  }
-
-  /**
-   * Google OAuth callback
-   * GET /api/v1/auth/google/callback
-   */
-  async googleCallback(req, res) {
-    try {
-      if (!req.user) {
-        return res.status(401).json({
-          success: false,
-          message: 'Google authentication failed'
-        });
-      }
-
-      const user = req.user;
-
-      // Generate JWT token
-      const token = jwt.sign(
-        { userId: user.id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-
-      // Store session in Redis
-      await redisUtils.storeSession(user.id, {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        token
-      });
-
-      // Log activity
-      await ActivityLog.createUserActivity(
-        user.id,
-        'user_login',
-        'User logged in via Google OAuth',
-        { email: user.email, method: 'google' }
-      );
-
-      logger.info(`User logged in via Google: ${user.email}`);
-
-      // Redirect to frontend with token
-      res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
-
-    } catch (error) {
-      logger.error('Google OAuth callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/auth/error`);
-    }
-  }
-
-  /**
    * Check authentication status
    * GET /api/v1/auth/check
    */
   async checkAuth(req, res) {
     try {
-      const userId = req.user.id;
-
-      const user = await User.findByPk(userId);
-      if (!user || !user.isActive) {
+      if (!req.user) {
         return res.status(401).json({
           success: false,
-          message: 'User not authenticated or account deactivated'
+          message: 'Not authenticated'
         });
       }
 
       res.json({
         success: true,
+        message: 'Authenticated',
         data: {
-          user: user.toJSON(),
-          isAuthenticated: true
+          user: {
+            id: req.user.id,
+            firstName: req.user.firstName,
+            lastName: req.user.lastName,
+            email: req.user.email,
+            role: req.user.role,
+            isVerified: req.user.isVerified
+          }
         }
       });
 
