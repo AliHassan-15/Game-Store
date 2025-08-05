@@ -3,11 +3,11 @@ const logger = require('../utils/logger/logger');
 
 // Database configuration with camelCase variables
 const databaseConfig = {
-  databaseName: process.env.DB_NAME || 'gameStoreDb',
-  databaseUser: process.env.DB_USER || 'postgres',
-  databasePassword: process.env.DB_PASSWORD || 'your_password',
-  databaseHost: process.env.DB_HOST || 'localhost',
-  databasePort: process.env.DB_PORT || 5432,
+  databaseName: process.env.DB_NAME,
+  databaseUser: process.env.DB_USER,
+  databasePassword: process.env.DB_PASSWORD,
+  databaseHost: process.env.DB_HOST,
+  databasePort: process.env.DB_PORT,
   nodeEnvironment: process.env.NODE_ENV || 'development'
 };
 
