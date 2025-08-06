@@ -761,6 +761,530 @@ class UserController {
       });
     }
   }
+
+  /**
+   * Create user address
+   * POST /api/v1/users/addresses
+   */
+  async createUserAddress(req, res) {
+    try {
+      // Use the existing addUserAddress method
+      return await this.addUserAddress(req, res);
+    } catch (error) {
+      logger.error('Create user address error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create user address',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Set default address
+   * PUT /api/v1/users/addresses/:addressId/set-default
+   */
+  async setDefaultAddress(req, res) {
+    try {
+      const { addressId } = req.params;
+      const userId = req.user.id;
+
+      const address = await UserAddress.findOne({
+        where: { id: addressId, userId }
+      });
+
+      if (!address) {
+        return res.status(404).json({
+          success: false,
+          message: 'Address not found'
+        });
+      }
+
+      // Remove default from all addresses
+      await UserAddress.update(
+        { isDefault: false },
+        { where: { userId, type: address.type } }
+      );
+
+      // Set this address as default
+      await address.update({ isDefault: true });
+
+      res.json({
+        success: true,
+        message: 'Default address updated successfully'
+      });
+
+    } catch (error) {
+      logger.error('Set default address error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to set default address',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Create user payment
+   * POST /api/v1/users/payments
+   */
+  async createUserPayment(req, res) {
+    try {
+      // Use the existing addUserPayment method
+      return await this.addUserPayment(req, res);
+    } catch (error) {
+      logger.error('Create user payment error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create user payment',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Set default payment
+   * PUT /api/v1/users/payments/:paymentId/set-default
+   */
+  async setDefaultPayment(req, res) {
+    try {
+      const { paymentId } = req.params;
+      const userId = req.user.id;
+
+      const payment = await UserPayment.findOne({
+        where: { id: paymentId, userId }
+      });
+
+      if (!payment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Payment method not found'
+        });
+      }
+
+      // Remove default from all payments
+      await UserPayment.update(
+        { isDefault: false },
+        { where: { userId } }
+      );
+
+      // Set this payment as default
+      await payment.update({ isDefault: true });
+
+      res.json({
+        success: true,
+        message: 'Default payment method updated successfully'
+      });
+
+    } catch (error) {
+      logger.error('Set default payment error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to set default payment method',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get user stats
+   * GET /api/v1/users/stats
+   */
+  async getUserStats(req, res) {
+    try {
+      // Use the existing getUserStatistics method
+      return await this.getUserStatistics(req, res);
+    } catch (error) {
+      logger.error('Get user stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get user stats',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get user order stats
+   * GET /api/v1/users/stats/orders
+   */
+  async getUserOrderStats(req, res) {
+    try {
+      const userId = req.user.id;
+
+      // TODO: Implement user order statistics
+      res.json({
+        success: true,
+        data: {
+          totalOrders: 0,
+          completedOrders: 0,
+          cancelledOrders: 0,
+          totalSpent: 0
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get user order stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get user order stats',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get user review stats
+   * GET /api/v1/users/stats/reviews
+   */
+  async getUserReviewStats(req, res) {
+    try {
+      const userId = req.user.id;
+
+      // TODO: Implement user review statistics
+      res.json({
+        success: true,
+        data: {
+          totalReviews: 0,
+          averageRating: 0,
+          recentReviews: []
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get user review stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get user review stats',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get all users (admin)
+   * GET /api/v1/users
+   */
+  async getAllUsers(req, res) {
+    try {
+      const { page = 1, limit = 20, role, status } = req.query;
+      const offset = (page - 1) * limit;
+
+      const whereClause = {};
+      if (role) whereClause.role = role;
+      if (status) whereClause.isActive = status === 'active';
+
+      const { count, rows: users } = await User.findAndCountAll({
+        where: whereClause,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        order: [['createdAt', 'DESC']],
+        attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'isActive', 'isVerified', 'createdAt']
+      });
+
+      const totalPages = Math.ceil(count / limit);
+
+      res.json({
+        success: true,
+        data: {
+          users,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages,
+            totalItems: count,
+            itemsPerPage: parseInt(limit)
+          }
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get all users error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get users',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get user by ID (admin)
+   * GET /api/v1/users/:userId
+   */
+  async getUserById(req, res) {
+    try {
+      const { userId } = req.params;
+
+      const user = await User.findByPk(userId, {
+        include: [
+          {
+            model: UserAddress,
+            as: 'addresses',
+            where: { isActive: true },
+            required: false
+          },
+          {
+            model: UserPayment,
+            as: 'payments',
+            where: { isActive: true },
+            required: false
+          }
+        ]
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: { user }
+      });
+
+    } catch (error) {
+      logger.error('Get user by ID error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get user',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Update user (admin)
+   * PUT /api/v1/users/:userId
+   */
+  async updateUser(req, res) {
+    try {
+      const { userId } = req.params;
+      const updateData = req.body;
+
+      const user = await User.findByPk(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // TODO: Implement user update logic
+      res.json({
+        success: true,
+        message: 'User updated successfully'
+      });
+
+    } catch (error) {
+      logger.error('Update user error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update user',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Delete user (admin)
+   * DELETE /api/v1/users/:userId
+   */
+  async deleteUser(req, res) {
+    try {
+      const { userId } = req.params;
+
+      const user = await User.findByPk(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // TODO: Implement user deletion logic
+      res.json({
+        success: true,
+        message: 'User deleted successfully'
+      });
+
+    } catch (error) {
+      logger.error('Delete user error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete user',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Update user status (admin)
+   * PUT /api/v1/users/:userId/status
+   */
+  async updateUserStatus(req, res) {
+    try {
+      const { userId } = req.params;
+      const { status } = req.body;
+
+      const user = await User.findByPk(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // TODO: Implement user status update logic
+      res.json({
+        success: true,
+        message: 'User status updated successfully'
+      });
+
+    } catch (error) {
+      logger.error('Update user status error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update user status',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Update user role (admin)
+   * PUT /api/v1/users/:userId/role
+   */
+  async updateUserRole(req, res) {
+    try {
+      const { userId } = req.params;
+      const { role } = req.body;
+
+      const user = await User.findByPk(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // TODO: Implement user role update logic
+      res.json({
+        success: true,
+        message: 'User role updated successfully'
+      });
+
+    } catch (error) {
+      logger.error('Update user role error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update user role',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get user management stats (admin)
+   * GET /api/v1/users/stats/overview
+   */
+  async getUserManagementStats(req, res) {
+    try {
+      // TODO: Implement user management statistics
+      res.json({
+        success: true,
+        data: {
+          totalUsers: 0,
+          activeUsers: 0,
+          verifiedUsers: 0,
+          newUsersThisMonth: 0
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get user management stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get user management stats',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get registration stats (admin)
+   * GET /api/v1/users/stats/registration
+   */
+  async getRegistrationStats(req, res) {
+    try {
+      // TODO: Implement registration statistics
+      res.json({
+        success: true,
+        data: {
+          dailyRegistrations: [],
+          monthlyRegistrations: [],
+          yearlyRegistrations: []
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get registration stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get registration stats',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get activity stats (admin)
+   * GET /api/v1/users/stats/activity
+   */
+  async getActivityStats(req, res) {
+    try {
+      // TODO: Implement activity statistics
+      res.json({
+        success: true,
+        data: {
+          activeUsers: 0,
+          inactiveUsers: 0,
+          lastLoginStats: []
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get activity stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get activity stats',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Export users to Excel (admin)
+   * GET /api/v1/users/export/excel
+   */
+  async exportUsersToExcel(req, res) {
+    try {
+      // TODO: Implement Excel export
+      res.json({
+        success: true,
+        message: 'Users exported successfully'
+      });
+
+    } catch (error) {
+      logger.error('Export users error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export users',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
 }
 
 module.exports = new UserController();

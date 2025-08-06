@@ -226,12 +226,7 @@ ActivityLog.belongsTo(User, {
   onDelete: 'SET NULL'
 });
 
-/**
- * Initialize Passport with User Model
- * This is needed for authentication to work properly
- */
-const { initializePassport } = require('../config/passport');
-initializePassport(User);
+
 
 /**
  * Database Synchronization Function

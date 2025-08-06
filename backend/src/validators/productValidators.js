@@ -76,7 +76,7 @@ const productValidators = {
 
   // Search products validation
   searchProducts: Joi.object({
-    query: Joi.string()
+    q: Joi.string()
       .min(1)
       .max(100)
       .required()

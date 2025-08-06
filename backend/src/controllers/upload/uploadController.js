@@ -579,6 +579,136 @@ class UploadController {
       });
     }
   }
+
+  /**
+   * Upload category image
+   * POST /api/v1/upload/category-image
+   */
+  async uploadCategoryImage(req, res) {
+    try {
+      // Use multer middleware for single file upload
+      upload.single('image')(req, res, async (err) => {
+        if (err) {
+          if (err instanceof multer.MulterError) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+              return res.status(400).json({
+                success: false,
+                message: 'File size too large. Maximum size is 5MB.'
+              });
+            }
+            if (err.code === 'LIMIT_FILE_COUNT') {
+              return res.status(400).json({
+                success: false,
+                message: 'Too many files. Maximum 1 file allowed.'
+              });
+            }
+          }
+          
+          return res.status(400).json({
+            success: false,
+            message: err.message || 'File upload error'
+          });
+        }
+
+        if (!req.file) {
+          return res.status(400).json({
+            success: false,
+            message: 'No file uploaded'
+          });
+        }
+
+        // Generate file URL
+        const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
+        logger.info(`Category image uploaded: ${req.file.filename}, Size: ${req.file.size} bytes`);
+
+        res.json({
+          success: true,
+          message: 'Category image uploaded successfully',
+          data: {
+            filename: req.file.filename,
+            originalName: req.file.originalname,
+            size: req.file.size,
+            mimetype: req.file.mimetype,
+            url: fileUrl
+          }
+        });
+      });
+
+    } catch (error) {
+      logger.error('Upload category image error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to upload category image',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Upload document
+   * POST /api/v1/upload/document
+   */
+  async uploadDocument(req, res) {
+    try {
+      // Use multer middleware for single file upload
+      upload.single('document')(req, res, async (err) => {
+        if (err) {
+          if (err instanceof multer.MulterError) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+              return res.status(400).json({
+                success: false,
+                message: 'File size too large. Maximum size is 5MB.'
+              });
+            }
+            if (err.code === 'LIMIT_FILE_COUNT') {
+              return res.status(400).json({
+                success: false,
+                message: 'Too many files. Maximum 1 file allowed.'
+              });
+            }
+          }
+          
+          return res.status(400).json({
+            success: false,
+            message: err.message || 'File upload error'
+          });
+        }
+
+        if (!req.file) {
+          return res.status(400).json({
+            success: false,
+            message: 'No file uploaded'
+          });
+        }
+
+        // Generate file URL
+        const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
+        logger.info(`Document uploaded: ${req.file.filename}, Size: ${req.file.size} bytes`);
+
+        res.json({
+          success: true,
+          message: 'Document uploaded successfully',
+          data: {
+            filename: req.file.filename,
+            originalName: req.file.originalname,
+            size: req.file.size,
+            mimetype: req.file.mimetype,
+            url: fileUrl
+          }
+        });
+      });
+
+    } catch (error) {
+      logger.error('Upload document error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to upload document',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
 }
 
 module.exports = new UploadController();

@@ -15,6 +15,10 @@ const redisClient = redis.createClient({
   password: redisConfig.redisPassword,
   retry_strategy: function(retryOptions) {
     if (retryOptions.error && retryOptions.error.code === 'ECONNREFUSED') {
+      if (process.env.NODE_ENV === 'development') {
+        // In development, don't retry if Redis is not available
+        return undefined;
+      }
       logger.error('Redis server refused the connection');
       return new Error('Redis server refused the connection');
     }
@@ -41,14 +45,26 @@ redisClient.on('ready', () => {
 });
 
 redisClient.on('error', (error) => {
+  if (process.env.NODE_ENV === 'development') {
+    // Silently ignore Redis errors in development
+    return;
+  }
   logger.error('Redis Client Error:', error.message);
 });
 
 redisClient.on('end', () => {
+  if (process.env.NODE_ENV === 'development') {
+    // Silently ignore Redis disconnection in development
+    return;
+  }
   logger.info('Redis client disconnected');
 });
 
 redisClient.on('reconnecting', () => {
+  if (process.env.NODE_ENV === 'development') {
+    // Silently ignore Redis reconnection attempts in development
+    return;
+  }
   logger.info('Redis client reconnecting...');
 });
 

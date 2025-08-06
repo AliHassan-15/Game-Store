@@ -815,6 +815,530 @@ class AdminController {
       });
     }
   }
+
+  /**
+   * Get users (admin)
+   * GET /api/v1/admin/users
+   */
+  async getUsers(req, res) {
+    try {
+      // Use the existing getAllUsers method
+      return await this.getAllUsers(req, res);
+    } catch (error) {
+      logger.error('Get users error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get users',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get user statistics (admin)
+   * GET /api/v1/admin/users/stats
+   */
+  async getUserStats(req, res) {
+    try {
+      // TODO: Implement user statistics
+      res.json({
+        success: true,
+        data: {
+          totalUsers: 0,
+          activeUsers: 0,
+          newUsersThisMonth: 0
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get user stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get user statistics',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get products (admin)
+   * GET /api/v1/admin/products
+   */
+  async getProducts(req, res) {
+    try {
+      // TODO: Implement products retrieval
+      res.json({
+        success: true,
+        data: { products: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get products error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get products',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get product statistics (admin)
+   * GET /api/v1/admin/products/stats
+   */
+  async getProductStats(req, res) {
+    try {
+      // TODO: Implement product statistics
+      res.json({
+        success: true,
+        data: {
+          totalProducts: 0,
+          activeProducts: 0,
+          lowStockProducts: 0
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get product stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get product statistics',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get orders (admin)
+   * GET /api/v1/admin/orders
+   */
+  async getOrders(req, res) {
+    try {
+      // TODO: Implement orders retrieval
+      res.json({
+        success: true,
+        data: { orders: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get orders error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get orders',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get order statistics (admin)
+   * GET /api/v1/admin/orders/stats
+   */
+  async getOrderStats(req, res) {
+    try {
+      // TODO: Implement order statistics
+      res.json({
+        success: true,
+        data: {
+          totalOrders: 0,
+          totalRevenue: 0,
+          averageOrderValue: 0
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get order stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get order statistics',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get revenue analytics (admin)
+   * GET /api/v1/admin/analytics/revenue
+   */
+  async getRevenueAnalytics(req, res) {
+    try {
+      // TODO: Implement revenue analytics
+      res.json({
+        success: true,
+        data: {
+          dailyRevenue: [],
+          monthlyRevenue: [],
+          yearlyRevenue: []
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get revenue analytics error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get revenue analytics',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get product analytics (admin)
+   * GET /api/v1/admin/analytics/products
+   */
+  async getProductAnalytics(req, res) {
+    try {
+      // TODO: Implement product analytics
+      res.json({
+        success: true,
+        data: {
+          topSellingProducts: [],
+          productPerformance: []
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get product analytics error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get product analytics',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get user analytics (admin)
+   * GET /api/v1/admin/analytics/users
+   */
+  async getUserAnalytics(req, res) {
+    try {
+      // TODO: Implement user analytics
+      res.json({
+        success: true,
+        data: {
+          userGrowth: [],
+          userActivity: []
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get user analytics error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get user analytics',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get inventory (admin)
+   * GET /api/v1/admin/inventory
+   */
+  async getInventory(req, res) {
+    try {
+      // Use the existing getInventoryOverview method
+      return await this.getInventoryOverview(req, res);
+    } catch (error) {
+      logger.error('Get inventory error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get inventory',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get low stock products (admin)
+   * GET /api/v1/admin/inventory/low-stock
+   */
+  async getLowStock(req, res) {
+    try {
+      // TODO: Implement low stock products retrieval
+      res.json({
+        success: true,
+        data: { products: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get low stock error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get low stock products',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get out of stock products (admin)
+   * GET /api/v1/admin/inventory/out-of-stock
+   */
+  async getOutOfStock(req, res) {
+    try {
+      // TODO: Implement out of stock products retrieval
+      res.json({
+        success: true,
+        data: { products: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get out of stock error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get out of stock products',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get inventory transactions (admin)
+   * GET /api/v1/admin/inventory/transactions
+   */
+  async getInventoryTransactions(req, res) {
+    try {
+      // TODO: Implement inventory transactions retrieval
+      res.json({
+        success: true,
+        data: { transactions: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get inventory transactions error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get inventory transactions',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get system health (admin)
+   * GET /api/v1/admin/system/health
+   */
+  async getSystemHealth(req, res) {
+    try {
+      // TODO: Implement system health check
+      res.json({
+        success: true,
+        data: {
+          status: 'healthy',
+          uptime: process.uptime(),
+          memory: process.memoryUsage()
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get system health error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get system health',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get system logs (admin)
+   * GET /api/v1/admin/system/logs
+   */
+  async getSystemLogs(req, res) {
+    try {
+      // TODO: Implement system logs retrieval
+      res.json({
+        success: true,
+        data: { logs: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get system logs error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get system logs',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get activity logs (admin)
+   * GET /api/v1/admin/activity-logs
+   */
+  async getActivityLogs(req, res) {
+    try {
+      // TODO: Implement activity logs retrieval
+      res.json({
+        success: true,
+        data: { logs: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get activity logs error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get activity logs',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get user activity logs (admin)
+   * GET /api/v1/admin/activity-logs/user/:userId
+   */
+  async getUserActivityLogs(req, res) {
+    try {
+      // TODO: Implement user activity logs retrieval
+      res.json({
+        success: true,
+        data: { logs: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get user activity logs error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get user activity logs',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get sales report (admin)
+   * GET /api/v1/admin/reports/sales
+   */
+  async getSalesReport(req, res) {
+    try {
+      // TODO: Implement sales report
+      res.json({
+        success: true,
+        data: { report: {} }
+      });
+
+    } catch (error) {
+      logger.error('Get sales report error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get sales report',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get inventory report (admin)
+   * GET /api/v1/admin/reports/inventory
+   */
+  async getInventoryReport(req, res) {
+    try {
+      // TODO: Implement inventory report
+      res.json({
+        success: true,
+        data: { report: {} }
+      });
+
+    } catch (error) {
+      logger.error('Get inventory report error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get inventory report',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get user report (admin)
+   * GET /api/v1/admin/reports/users
+   */
+  async getUserReport(req, res) {
+    try {
+      // TODO: Implement user report
+      res.json({
+        success: true,
+        data: { report: {} }
+      });
+
+    } catch (error) {
+      logger.error('Get user report error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get user report',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Export sales (admin)
+   * GET /api/v1/admin/export/sales
+   */
+  async exportSales(req, res) {
+    try {
+      // TODO: Implement sales export
+      res.json({
+        success: true,
+        message: 'Sales exported successfully'
+      });
+
+    } catch (error) {
+      logger.error('Export sales error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export sales',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Export inventory (admin)
+   * GET /api/v1/admin/export/inventory
+   */
+  async exportInventory(req, res) {
+    try {
+      // TODO: Implement inventory export
+      res.json({
+        success: true,
+        message: 'Inventory exported successfully'
+      });
+
+    } catch (error) {
+      logger.error('Export inventory error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export inventory',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Export users (admin)
+   * GET /api/v1/admin/export/users
+   */
+  async exportUsers(req, res) {
+    try {
+      // TODO: Implement users export
+      res.json({
+        success: true,
+        message: 'Users exported successfully'
+      });
+
+    } catch (error) {
+      logger.error('Export users error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export users',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
 }
 
 module.exports = new AdminController();

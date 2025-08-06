@@ -53,7 +53,7 @@ router.get('/my-reviews',
   authenticate,
   requireBuyer,
   validateQuery(reviewValidators.getMyReviews),
-  reviewController.getMyReviews
+  reviewController.getUserReviews
 );
 
 // Admin routes (admin authentication required)

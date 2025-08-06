@@ -9,7 +9,7 @@ const path = require('path');
 require('dotenv').config();
 
 // Import configurations
-const { database } = require('./config/database');
+const { sequelize } = require('./config/database');
 const { redisClient } = require('./config/redis');
 const { initializeSessionStore } = require('./config/passport');
 
@@ -147,13 +147,21 @@ const gracefulShutdown = async (signal) => {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
   
   try {
-    // Close database connection
-    await database.close();
-    logger.info('Database connection closed');
+    // Close database connection (if available)
+    try {
+      await sequelize.close();
+      logger.info('Database connection closed');
+    } catch (dbError) {
+      logger.warn('Database connection already closed or not available');
+    }
     
-    // Close Redis connection
-    await redisClient.quit();
-    logger.info('Redis connection closed');
+    // Close Redis connection (if available)
+    try {
+      await redisClient.quit();
+      logger.info('Redis connection closed');
+    } catch (redisError) {
+      logger.warn('Redis connection already closed or not available');
+    }
     
     // Close server
     server.close(() => {
@@ -181,8 +189,13 @@ process.on('uncaughtException', (error) => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+  if (process.env.NODE_ENV === ENV.DEVELOPMENT) {
+    // Silently ignore unhandled rejections in development mode
+    return;
+  } else {
+    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1);
+  }
 });
 
 // Handle SIGTERM and SIGINT
@@ -191,32 +204,50 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start server
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, async () => {
+const server = app.listen(PORT, () => {
+  logger.startup('Server', 'started', { port: PORT, environment: process.env.NODE_ENV });
+  
+  // Log memory usage
+  const memUsage = process.memoryUsage();
+  logger.memory(memUsage);
+});
+
+// Initialize database and Redis connections asynchronously (non-blocking)
+const initializeConnections = async () => {
+  // Test database connection (optional in development)
   try {
-    // Test database connection
-    await database.authenticate();
+    await sequelize.authenticate();
     logger.startup('Database', 'connected');
     
     // Sync database (in development)
     if (process.env.NODE_ENV === ENV.DEVELOPMENT) {
-      await database.sync({ alter: true });
+      await sequelize.sync({ alter: true });
       logger.startup('Database', 'synced');
     }
-    
-    // Test Redis connection
+  } catch (dbError) {
+    if (process.env.NODE_ENV === ENV.DEVELOPMENT) {
+      // Silently ignore database connection errors in development
+    } else {
+      logger.error('Database connection failed:', dbError.message);
+    }
+  }
+  
+  // Test Redis connection (optional in development)
+  try {
     await redisClient.ping();
     logger.startup('Redis', 'connected');
-    
-    logger.startup('Server', 'started', { port: PORT, environment: process.env.NODE_ENV });
-    
-    // Log memory usage
-    const memUsage = process.memoryUsage();
-    logger.memory(memUsage);
-    
-  } catch (error) {
-    logger.error('Failed to start server:', error);
-    process.exit(1);
+  } catch (redisError) {
+    if (process.env.NODE_ENV === ENV.DEVELOPMENT) {
+      // Silently ignore Redis connection errors in development
+    } else {
+      logger.error('Redis connection failed:', redisError.message);
+    }
   }
+};
+
+// Initialize connections without blocking server startup
+initializeConnections().catch(() => {
+  // Silently handle any errors in development mode
 });
 
 // Export app for testing

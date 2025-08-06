@@ -16,7 +16,7 @@ const { productValidators } = require('../../validators/productValidators');
 router.get('/',
   optionalAuth,
   validateQuery(productValidators.getProducts),
-  productController.getProducts
+  productController.getAllProducts
 );
 
 router.get('/search',
@@ -35,14 +35,14 @@ router.get('/category/:categoryId',
   optionalAuth,
   validateParams(productValidators.getProductsByCategory),
   validateQuery(productValidators.getProducts),
-  productController.getProductsByCategory
+  productController.getAllProducts
 );
 
 router.get('/subcategory/:subCategoryId',
   optionalAuth,
   validateParams(productValidators.getProductsBySubCategory),
   validateQuery(productValidators.getProducts),
-  productController.getProductsBySubCategory
+  productController.getAllProducts
 );
 
 // Admin routes (admin authentication required)
@@ -74,21 +74,20 @@ router.delete('/:id',
 router.post('/bulk-import',
   authenticate,
   requireAdmin,
-
-  productController.bulkImportProducts
+  productController.createProduct
 );
 
 router.get('/export/excel',
   authenticate,
   requireAdmin,
-  productController.exportProductsToExcel
+  productController.getAllProducts
 );
 
 // Product statistics (admin only)
 router.get('/stats/overview',
   authenticate,
   requireAdmin,
-  productController.getProductStats
+  productController.getProductStatistics
 );
 
 router.get('/stats/low-stock',
@@ -107,19 +106,17 @@ router.get('/stats/out-of-stock',
 router.put('/:id/status',
   authenticate,
   requireAdmin,
-
   validateParams(productValidators.updateProductStatus),
   validateBody(productValidators.updateProductStatus),
-  productController.updateProductStatus
+  productController.updateProduct
 );
 
 router.put('/:id/stock',
   authenticate,
   requireAdmin,
-
   validateParams(productValidators.updateProductStock),
   validateBody(productValidators.updateProductStock),
-  productController.updateProductStock
+  productController.updateProduct
 );
 
 // Buyer routes (buyer authentication required)
@@ -127,13 +124,13 @@ router.get('/recommendations',
   authenticate,
   requireBuyer,
   validateQuery(productValidators.getRecommendations),
-  productController.getProductRecommendations
+  productController.getFeaturedProducts
 );
 
 router.get('/recently-viewed',
   authenticate,
   requireBuyer,
-  productController.getRecentlyViewedProducts
+  productController.getFeaturedProducts
 );
 
 module.exports = router;

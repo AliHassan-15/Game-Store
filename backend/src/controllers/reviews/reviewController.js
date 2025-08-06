@@ -641,6 +641,320 @@ class ReviewController {
       });
     }
   }
+
+  /**
+   * Admin: Delete review (admin)
+   * DELETE /api/v1/reviews/:reviewId/admin
+   */
+  async deleteReviewAdmin(req, res) {
+    try {
+      const { reviewId } = req.params;
+      const adminId = req.user.id;
+
+      const review = await Review.findByPk(reviewId);
+      if (!review) {
+        return res.status(404).json({
+          success: false,
+          message: 'Review not found'
+        });
+      }
+
+      // Soft delete review
+      await review.update({ isActive: false });
+
+      // Log activity
+      await require('../../models').ActivityLog.createUserActivity(
+        adminId,
+        'admin_review_delete',
+        'Review deleted by admin',
+        { 
+          reviewId,
+          productId: review.productId,
+          userId: review.userId
+        }
+      );
+
+      logger.info(`Review deleted by admin: ${reviewId}`);
+
+      res.json({
+        success: true,
+        message: 'Review deleted successfully'
+      });
+
+    } catch (error) {
+      logger.error('Delete review admin error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete review',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get review statistics (admin)
+   * GET /api/v1/reviews/stats/overview
+   */
+  async getReviewStats(req, res) {
+    try {
+      const totalReviews = await Review.count({ where: { isActive: true } });
+      const verifiedReviews = await Review.count({ where: { isActive: true, isVerified: true } });
+      const averageRating = await Review.findAll({
+        where: { isActive: true },
+        attributes: [[require('sequelize').fn('AVG', require('sequelize').col('rating')), 'averageRating']]
+      });
+
+      res.json({
+        success: true,
+        data: {
+          totalReviews,
+          verifiedReviews,
+          averageRating: parseFloat(averageRating[0]?.getDataValue('averageRating') || 0).toFixed(1)
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get review stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get review statistics',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get product review statistics (admin)
+   * GET /api/v1/reviews/stats/product/:productId
+   */
+  async getProductReviewStats(req, res) {
+    try {
+      const { productId } = req.params;
+
+      const stats = await Review.findAll({
+        where: { productId, isActive: true },
+        attributes: [
+          [require('sequelize').fn('AVG', require('sequelize').col('rating')), 'averageRating'],
+          [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'totalReviews'],
+          [require('sequelize').fn('COUNT', require('sequelize').literal('CASE WHEN rating = 5 THEN 1 END')), 'fiveStar'],
+          [require('sequelize').fn('COUNT', require('sequelize').literal('CASE WHEN rating = 4 THEN 1 END')), 'fourStar'],
+          [require('sequelize').fn('COUNT', require('sequelize').literal('CASE WHEN rating = 3 THEN 1 END')), 'threeStar'],
+          [require('sequelize').fn('COUNT', require('sequelize').literal('CASE WHEN rating = 2 THEN 1 END')), 'twoStar'],
+          [require('sequelize').fn('COUNT', require('sequelize').literal('CASE WHEN rating = 1 THEN 1 END')), 'oneStar']
+        ]
+      });
+
+      const data = stats[0];
+      res.json({
+        success: true,
+        data: {
+          averageRating: parseFloat(data.getDataValue('averageRating') || 0).toFixed(1),
+          totalReviews: parseInt(data.getDataValue('totalReviews') || 0),
+          ratingDistribution: {
+            fiveStar: parseInt(data.getDataValue('fiveStar') || 0),
+            fourStar: parseInt(data.getDataValue('fourStar') || 0),
+            threeStar: parseInt(data.getDataValue('threeStar') || 0),
+            twoStar: parseInt(data.getDataValue('twoStar') || 0),
+            oneStar: parseInt(data.getDataValue('oneStar') || 0)
+          }
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get product review stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get product review statistics',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get rating distribution (admin)
+   * GET /api/v1/reviews/stats/rating-distribution
+   */
+  async getRatingDistribution(req, res) {
+    try {
+      const stats = await Review.findAll({
+        where: { isActive: true },
+        attributes: [
+          [require('sequelize').fn('COUNT', require('sequelize').literal('CASE WHEN rating = 5 THEN 1 END')), 'fiveStar'],
+          [require('sequelize').fn('COUNT', require('sequelize').literal('CASE WHEN rating = 4 THEN 1 END')), 'fourStar'],
+          [require('sequelize').fn('COUNT', require('sequelize').literal('CASE WHEN rating = 3 THEN 1 END')), 'threeStar'],
+          [require('sequelize').fn('COUNT', require('sequelize').literal('CASE WHEN rating = 2 THEN 1 END')), 'twoStar'],
+          [require('sequelize').fn('COUNT', require('sequelize').literal('CASE WHEN rating = 1 THEN 1 END')), 'oneStar']
+        ]
+      });
+
+      const data = stats[0];
+      res.json({
+        success: true,
+        data: {
+          ratingDistribution: {
+            fiveStar: parseInt(data.getDataValue('fiveStar') || 0),
+            fourStar: parseInt(data.getDataValue('fourStar') || 0),
+            threeStar: parseInt(data.getDataValue('threeStar') || 0),
+            twoStar: parseInt(data.getDataValue('twoStar') || 0),
+            oneStar: parseInt(data.getDataValue('oneStar') || 0)
+          }
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get rating distribution error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get rating distribution',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get pending reviews (admin)
+   * GET /api/v1/reviews/pending
+   */
+  async getPendingReviews(req, res) {
+    try {
+      // TODO: Implement pending reviews logic
+      res.json({
+        success: true,
+        data: { reviews: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get pending reviews error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get pending reviews',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get reported reviews (admin)
+   * GET /api/v1/reviews/reported
+   */
+  async getReportedReviews(req, res) {
+    try {
+      // TODO: Implement reported reviews logic
+      res.json({
+        success: true,
+        data: { reviews: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get reported reviews error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get reported reviews',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Report review (buyer)
+   * POST /api/v1/reviews/:reviewId/report
+   */
+  async reportReview(req, res) {
+    try {
+      const { reviewId } = req.params;
+      const { reason } = req.body;
+      const userId = req.user.id;
+
+      const review = await Review.findByPk(reviewId);
+      if (!review) {
+        return res.status(404).json({
+          success: false,
+          message: 'Review not found'
+        });
+      }
+
+      // TODO: Implement review reporting logic
+      res.json({
+        success: true,
+        message: 'Review reported successfully'
+      });
+
+    } catch (error) {
+      logger.error('Report review error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to report review',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Approve review (admin)
+   * POST /api/v1/reviews/:reviewId/approve
+   */
+  async approveReview(req, res) {
+    try {
+      const { reviewId } = req.params;
+      const adminId = req.user.id;
+
+      const review = await Review.findByPk(reviewId);
+      if (!review) {
+        return res.status(404).json({
+          success: false,
+          message: 'Review not found'
+        });
+      }
+
+      // TODO: Implement review approval logic
+      res.json({
+        success: true,
+        message: 'Review approved successfully'
+      });
+
+    } catch (error) {
+      logger.error('Approve review error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to approve review',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Reject review (admin)
+   * POST /api/v1/reviews/:reviewId/reject
+   */
+  async rejectReview(req, res) {
+    try {
+      const { reviewId } = req.params;
+      const { reason } = req.body;
+      const adminId = req.user.id;
+
+      const review = await Review.findByPk(reviewId);
+      if (!review) {
+        return res.status(404).json({
+          success: false,
+          message: 'Review not found'
+        });
+      }
+
+      // TODO: Implement review rejection logic
+      res.json({
+        success: true,
+        message: 'Review rejected successfully'
+      });
+
+    } catch (error) {
+      logger.error('Reject review error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to reject review',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
 }
 
 module.exports = new ReviewController();

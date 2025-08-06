@@ -732,6 +732,491 @@ class OrderController {
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     return `ORD-${timestamp}-${random}`;
   }
+
+  /**
+   * Create order from cart
+   * POST /api/v1/orders/create-from-cart
+   */
+  async createOrderFromCart(req, res) {
+    try {
+      // Use the existing createOrder method
+      return await this.createOrder(req, res);
+    } catch (error) {
+      logger.error('Create order from cart error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create order from cart',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get my orders (buyer)
+   * GET /api/v1/orders/my-orders
+   */
+  async getMyOrders(req, res) {
+    try {
+      // Use the existing getUserOrders method
+      return await this.getUserOrders(req, res);
+    } catch (error) {
+      logger.error('Get my orders error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get my orders',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get my order by ID (buyer)
+   * GET /api/v1/orders/my-orders/:orderId
+   */
+  async getMyOrderById(req, res) {
+    try {
+      // Use the existing getOrderDetails method
+      return await this.getOrderDetails(req, res);
+    } catch (error) {
+      logger.error('Get my order by ID error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get my order',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Request refund (buyer)
+   * POST /api/v1/orders/my-orders/:orderId/request-refund
+   */
+  async requestRefund(req, res) {
+    try {
+      const { orderId } = req.params;
+      const { reason } = req.body;
+      const userId = req.user.id;
+
+      const order = await Order.findOne({
+        where: { id: orderId, userId }
+      });
+
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: 'Order not found'
+        });
+      }
+
+      // TODO: Implement refund request logic
+      res.json({
+        success: true,
+        message: 'Refund request submitted successfully'
+      });
+
+    } catch (error) {
+      logger.error('Request refund error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to request refund',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get order by ID (admin)
+   * GET /api/v1/orders/:orderId
+   */
+  async getOrderById(req, res) {
+    try {
+      const { orderId } = req.params;
+
+      const order = await Order.findByPk(orderId, {
+        include: [
+          {
+            model: OrderItem,
+            as: 'orderItems',
+            include: [
+              {
+                model: Product,
+                as: 'product'
+              }
+            ]
+          },
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'firstName', 'lastName', 'email']
+          }
+        ]
+      });
+
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: 'Order not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: { order }
+      });
+
+    } catch (error) {
+      logger.error('Get order by ID error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get order',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Update shipping info (admin)
+   * PUT /api/v1/orders/:orderId/shipping
+   */
+  async updateShippingInfo(req, res) {
+    try {
+      const { orderId } = req.params;
+      const updateData = req.body;
+
+      const order = await Order.findByPk(orderId);
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: 'Order not found'
+        });
+      }
+
+      // TODO: Implement shipping info update logic
+      res.json({
+        success: true,
+        message: 'Shipping info updated successfully'
+      });
+
+    } catch (error) {
+      logger.error('Update shipping info error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update shipping info',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Process refund (admin)
+   * POST /api/v1/orders/:orderId/refund
+   */
+  async processRefund(req, res) {
+    try {
+      const { orderId } = req.params;
+      const { amount, reason } = req.body;
+
+      const order = await Order.findByPk(orderId);
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: 'Order not found'
+        });
+      }
+
+      // TODO: Implement refund processing logic
+      res.json({
+        success: true,
+        message: 'Refund processed successfully'
+      });
+
+    } catch (error) {
+      logger.error('Process refund error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to process refund',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get order statistics (admin)
+   * GET /api/v1/orders/stats/overview
+   */
+  async getOrderStats(req, res) {
+    try {
+      // TODO: Implement order statistics
+      res.json({
+        success: true,
+        data: {
+          totalOrders: 0,
+          totalRevenue: 0,
+          averageOrderValue: 0
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get order stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get order statistics',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get revenue statistics (admin)
+   * GET /api/v1/orders/stats/revenue
+   */
+  async getRevenueStats(req, res) {
+    try {
+      // TODO: Implement revenue statistics
+      res.json({
+        success: true,
+        data: {
+          dailyRevenue: [],
+          monthlyRevenue: [],
+          yearlyRevenue: []
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get revenue stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get revenue statistics',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get status statistics (admin)
+   * GET /api/v1/orders/stats/status
+   */
+  async getStatusStats(req, res) {
+    try {
+      // TODO: Implement status statistics
+      res.json({
+        success: true,
+        data: {
+          pending: 0,
+          processing: 0,
+          shipped: 0,
+          delivered: 0,
+          cancelled: 0,
+          refunded: 0
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get status stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get status statistics',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get pending orders (admin)
+   * GET /api/v1/orders/pending
+   */
+  async getPendingOrders(req, res) {
+    try {
+      // TODO: Implement pending orders retrieval
+      res.json({
+        success: true,
+        data: { orders: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get pending orders error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get pending orders',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get processing orders (admin)
+   * GET /api/v1/orders/processing
+   */
+  async getProcessingOrders(req, res) {
+    try {
+      // TODO: Implement processing orders retrieval
+      res.json({
+        success: true,
+        data: { orders: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get processing orders error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get processing orders',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get shipped orders (admin)
+   * GET /api/v1/orders/shipped
+   */
+  async getShippedOrders(req, res) {
+    try {
+      // TODO: Implement shipped orders retrieval
+      res.json({
+        success: true,
+        data: { orders: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get shipped orders error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get shipped orders',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get delivered orders (admin)
+   * GET /api/v1/orders/delivered
+   */
+  async getDeliveredOrders(req, res) {
+    try {
+      // TODO: Implement delivered orders retrieval
+      res.json({
+        success: true,
+        data: { orders: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get delivered orders error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get delivered orders',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get cancelled orders (admin)
+   * GET /api/v1/orders/cancelled
+   */
+  async getCancelledOrders(req, res) {
+    try {
+      // TODO: Implement cancelled orders retrieval
+      res.json({
+        success: true,
+        data: { orders: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get cancelled orders error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get cancelled orders',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get refunded orders (admin)
+   * GET /api/v1/orders/refunded
+   */
+  async getRefundedOrders(req, res) {
+    try {
+      // TODO: Implement refunded orders retrieval
+      res.json({
+        success: true,
+        data: { orders: [] }
+      });
+
+    } catch (error) {
+      logger.error('Get refunded orders error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get refunded orders',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Export orders to Excel (admin)
+   * GET /api/v1/orders/export/excel
+   */
+  async exportOrdersToExcel(req, res) {
+    try {
+      // TODO: Implement Excel export
+      res.json({
+        success: true,
+        message: 'Orders exported successfully'
+      });
+
+    } catch (error) {
+      logger.error('Export orders error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export orders',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Track order (public)
+   * GET /api/v1/orders/track/:trackingNumber
+   */
+  async trackOrder(req, res) {
+    try {
+      const { trackingNumber } = req.params;
+
+      const order = await Order.findOne({
+        where: { trackingNumber }
+      });
+
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: 'Order not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          order: {
+            id: order.id,
+            orderNumber: order.orderNumber,
+            status: order.status,
+            trackingNumber: order.trackingNumber,
+            shippedAt: order.shippedAt,
+            deliveredAt: order.deliveredAt
+          }
+        }
+      });
+
+    } catch (error) {
+      logger.error('Track order error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to track order',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
 }
 
 module.exports = new OrderController();

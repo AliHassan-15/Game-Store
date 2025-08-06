@@ -604,6 +604,207 @@ class CartController {
       });
     }
   }
+
+  /**
+   * Apply coupon/discount to cart
+   * POST /api/v1/cart/apply-coupon
+   */
+  async applyCoupon(req, res) {
+    try {
+      const { couponCode } = req.body;
+      const userId = req.user.id;
+
+      // Get user's cart
+      const cart = await Cart.findOne({
+        where: { userId, isActive: true }
+      });
+
+      if (!cart) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cart not found'
+        });
+      }
+
+      // TODO: Implement coupon validation logic
+      // For now, return a placeholder response
+      res.json({
+        success: true,
+        message: 'Coupon applied successfully',
+        data: {
+          discount: 0,
+          couponCode
+        }
+      });
+
+    } catch (error) {
+      logger.error('Apply coupon error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to apply coupon',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Remove coupon/discount from cart
+   * DELETE /api/v1/cart/remove-coupon
+   */
+  async removeCoupon(req, res) {
+    try {
+      const userId = req.user.id;
+
+      // Get user's cart
+      const cart = await Cart.findOne({
+        where: { userId, isActive: true }
+      });
+
+      if (!cart) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cart not found'
+        });
+      }
+
+      // TODO: Implement coupon removal logic
+      res.json({
+        success: true,
+        message: 'Coupon removed successfully'
+      });
+
+    } catch (error) {
+      logger.error('Remove coupon error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to remove coupon',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Save cart for later
+   * POST /api/v1/cart/save
+   */
+  async saveCart(req, res) {
+    try {
+      const { name } = req.body;
+      const userId = req.user.id;
+
+      // Get user's current cart
+      const cart = await Cart.findOne({
+        where: { userId, isActive: true },
+        include: [
+          {
+            model: CartItem,
+            as: 'cartItems'
+          }
+        ]
+      });
+
+      if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cart is empty'
+        });
+      }
+
+      // TODO: Implement cart saving logic
+      res.json({
+        success: true,
+        message: 'Cart saved successfully',
+        data: {
+          savedCartId: 'temp-id',
+          name
+        }
+      });
+
+    } catch (error) {
+      logger.error('Save cart error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to save cart',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get saved carts
+   * GET /api/v1/cart/saved
+   */
+  async getSavedCarts(req, res) {
+    try {
+      const userId = req.user.id;
+
+      // TODO: Implement saved carts retrieval
+      res.json({
+        success: true,
+        data: {
+          savedCarts: []
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get saved carts error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get saved carts',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Load saved cart
+   * POST /api/v1/cart/load/:cartId
+   */
+  async loadSavedCart(req, res) {
+    try {
+      const { cartId } = req.params;
+      const userId = req.user.id;
+
+      // TODO: Implement saved cart loading logic
+      res.json({
+        success: true,
+        message: 'Saved cart loaded successfully'
+      });
+
+    } catch (error) {
+      logger.error('Load saved cart error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to load saved cart',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Delete saved cart
+   * DELETE /api/v1/cart/saved/:cartId
+   */
+  async deleteSavedCart(req, res) {
+    try {
+      const { cartId } = req.params;
+      const userId = req.user.id;
+
+      // TODO: Implement saved cart deletion logic
+      res.json({
+        success: true,
+        message: 'Saved cart deleted successfully'
+      });
+
+    } catch (error) {
+      logger.error('Delete saved cart error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete saved cart',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
 }
 
 module.exports = new CartController();

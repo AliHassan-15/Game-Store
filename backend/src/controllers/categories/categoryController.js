@@ -785,6 +785,290 @@ class CategoryController {
       });
     }
   }
+
+  /**
+   * Get categories (public)
+   * GET /api/v1/categories
+   */
+  async getCategories(req, res) {
+    try {
+      // Use the existing getAllCategories method
+      return await this.getAllCategories(req, res);
+    } catch (error) {
+      logger.error('Get categories error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get categories',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get subcategories for a category
+   * GET /api/v1/categories/:id/subcategories
+   */
+  async getSubCategories(req, res) {
+    try {
+      const { id } = req.params;
+
+      const category = await Category.findByPk(id, {
+        include: [
+          {
+            model: SubCategory,
+            as: 'subCategories',
+            where: { isActive: true },
+            required: false
+          }
+        ]
+      });
+
+      if (!category) {
+        return res.status(404).json({
+          success: false,
+          message: 'Category not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          category: {
+            id: category.id,
+            name: category.name,
+            slug: category.slug
+          },
+          subCategories: category.subCategories || []
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get subcategories error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get subcategories',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get products for a category
+   * GET /api/v1/categories/:id/products
+   */
+  async getCategoryProducts(req, res) {
+    try {
+      const { id } = req.params;
+      const { page = 1, limit = 20 } = req.query;
+
+      const category = await Category.findByPk(id);
+      if (!category) {
+        return res.status(404).json({
+          success: false,
+          message: 'Category not found'
+        });
+      }
+
+      const offset = (page - 1) * limit;
+
+      const { count, rows: products } = await Product.findAndCountAll({
+        where: { categoryId: id, isActive: true },
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        order: [['createdAt', 'DESC']]
+      });
+
+      const totalPages = Math.ceil(count / limit);
+
+      res.json({
+        success: true,
+        data: {
+          category: {
+            id: category.id,
+            name: category.name,
+            slug: category.slug
+          },
+          products,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages,
+            totalItems: count,
+            itemsPerPage: parseInt(limit)
+          }
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get category products error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get category products',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Create subcategory
+   * POST /api/v1/categories/:categoryId/subcategories
+   */
+  async createSubCategory(req, res) {
+    try {
+      // Use the existing createSubcategory method
+      return await this.createSubcategory(req, res);
+    } catch (error) {
+      logger.error('Create subcategory error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create subcategory',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Update subcategory
+   * PUT /api/v1/categories/:categoryId/subcategories/:subCategoryId
+   */
+  async updateSubCategory(req, res) {
+    try {
+      // Use the existing updateSubcategory method
+      return await this.updateSubcategory(req, res);
+    } catch (error) {
+      logger.error('Update subcategory error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update subcategory',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Delete subcategory
+   * DELETE /api/v1/categories/:categoryId/subcategories/:subCategoryId
+   */
+  async deleteSubCategory(req, res) {
+    try {
+      // Use the existing deleteSubcategory method
+      return await this.deleteSubcategory(req, res);
+    } catch (error) {
+      logger.error('Delete subcategory error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete subcategory',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get category statistics (admin)
+   * GET /api/v1/categories/stats/overview
+   */
+  async getCategoryStats(req, res) {
+    try {
+      const totalCategories = await Category.count({ where: { isActive: true } });
+      const totalSubcategories = await SubCategory.count({ where: { isActive: true } });
+      const totalProducts = await Product.count({ where: { isActive: true } });
+
+      res.json({
+        success: true,
+        data: {
+          totalCategories,
+          totalSubcategories,
+          totalProducts
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get category stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get category statistics',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Get category product counts (admin)
+   * GET /api/v1/categories/stats/product-counts
+   */
+  async getCategoryProductCounts(req, res) {
+    try {
+      const categories = await Category.findAll({
+        where: { isActive: true },
+        include: [
+          {
+            model: Product,
+            as: 'products',
+            attributes: [],
+            where: { isActive: true },
+            required: false
+          }
+        ],
+        attributes: ['id', 'name']
+      });
+
+      const productCounts = categories.map(category => ({
+        id: category.id,
+        name: category.name,
+        productCount: category.products ? category.products.length : 0
+      }));
+
+      res.json({
+        success: true,
+        data: {
+          productCounts
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get category product counts error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get category product counts',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Import categories from Excel (admin)
+   * POST /api/v1/categories/import/excel
+   */
+  async importCategoriesFromExcel(req, res) {
+    try {
+      // Use the existing importFromExcel method
+      return await this.importFromExcel(req, res);
+    } catch (error) {
+      logger.error('Import categories from Excel error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to import categories from Excel',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Export categories to Excel (admin)
+   * GET /api/v1/categories/export/excel
+   */
+  async exportCategoriesToExcel(req, res) {
+    try {
+      // Use the existing exportToExcel method
+      return await this.exportToExcel(req, res);
+    } catch (error) {
+      logger.error('Export categories to Excel error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export categories to Excel',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
 }
 
 module.exports = new CategoryController();
