@@ -23,20 +23,16 @@ export const AuthPage: React.FC = () => {
     }
   }, [isAuthenticated, user, navigate])
 
-  const handleSuccess = () => {
-    // Success is handled by the useEffect above
-  }
-
   const handleSwitchToRegister = () => {
     setMode('register')
   }
 
-  const handleSwitchToLogin = () => {
-    setMode('login')
+  const handleSuccess = () => {
+    navigate('/')
   }
 
-  const handleForgotPassword = () => {
-    navigate('/auth/forgot-password')
+  const handleSwitchToLogin = () => {
+    setMode('login')
   }
 
   if (isAuthenticated) {
@@ -74,7 +70,6 @@ export const AuthPage: React.FC = () => {
               <LoginForm
                 onSuccess={handleSuccess}
                 onSwitchToRegister={handleSwitchToRegister}
-                onForgotPassword={handleForgotPassword}
               />
             </motion.div>
           ) : (

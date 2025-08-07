@@ -1,7 +1,3 @@
-    
-DON'T START NOW JUST UNDERSTAND AND TELL WHICH YOU UNDERSTAND PROPER 
-THIS IS MY PROJECT -- KEEP IN MIND ALL THESE THINGS 
-AND JUST REPLY "OKKKKK" If you understand evrything if not ask me if you have confusion
 Create a GameStore e-commerce application using the same tech stack 
 
 Backend: Express.js + PostgreSQL + Sequelize

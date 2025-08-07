@@ -1,14 +1,9 @@
 import axios from 'axios'
 import {
-  Product,
-  Category,
-  SubCategory,
-  ProductSearchParams,
   ProductListResponse,
   ProductResponse,
   ProductCreateData,
   ProductUpdateData,
-  ProductStatistics,
   ProductStatsResponse,
   LowStockProduct,
   OutOfStockProduct
@@ -41,13 +36,13 @@ productApi.interceptors.request.use(
 
 export const productService = {
   // Get all products with filters and pagination
-  async getProducts(params: ProductSearchParams = {}): Promise<ProductListResponse> {
+  async getProducts(params: any = {}): Promise<ProductListResponse> {
     const response = await productApi.get('/', { params })
     return response.data
   },
 
   // Search products
-  async searchProducts(params: ProductSearchParams): Promise<ProductListResponse> {
+  async searchProducts(params: any): Promise<ProductListResponse> {
     const response = await productApi.get('/search', { params })
     return response.data
   },
@@ -65,13 +60,13 @@ export const productService = {
   },
 
   // Get products by category
-  async getProductsByCategory(categoryId: string, params: ProductSearchParams = {}): Promise<ProductListResponse> {
+  async getProductsByCategory(categoryId: string, params: any = {}): Promise<ProductListResponse> {
     const response = await productApi.get(`/category/${categoryId}`, { params })
     return response.data
   },
 
   // Get products by subcategory
-  async getProductsBySubCategory(subCategoryId: string, params: ProductSearchParams = {}): Promise<ProductListResponse> {
+  async getProductsBySubCategory(subCategoryId: string, params: any = {}): Promise<ProductListResponse> {
     const response = await productApi.get(`/subcategory/${subCategoryId}`, { params })
     return response.data
   },
@@ -121,7 +116,7 @@ export const productService = {
   },
 
   // Export products to Excel (Admin only)
-  async exportProducts(params: ProductSearchParams = {}): Promise<Blob> {
+  async exportProducts(params: any = {}): Promise<Blob> {
     const response = await productApi.get('/export/excel', {
       params,
       responseType: 'blob',

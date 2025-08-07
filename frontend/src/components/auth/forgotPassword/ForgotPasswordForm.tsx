@@ -43,7 +43,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
     clearError()
     
     try {
-      await forgotPassword(data)
+      await forgotPassword(data.email)
       setIsSubmitted(true)
       onSuccess?.()
     } catch (error) {

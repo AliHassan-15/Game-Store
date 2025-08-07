@@ -1,0 +1,29 @@
+{
+  "development": {
+    "username": "postgres",
+    "password": "qbatch",
+    "database": "gameStoreDb",
+    "host": "localhost",
+    "port": 5432,
+    "dialect": "postgres",
+    "logging": false
+  },
+  "test": {
+    "username": "postgres",
+    "password": "qbatch",
+    "database": "gameStoreDb_test",
+    "host": "localhost",
+    "port": 5432,
+    "dialect": "postgres",
+    "logging": false
+  },
+  "production": {
+    "username": "postgres",
+    "password": "qbatch",
+    "database": "gameStoreDb_prod",
+    "host": "localhost",
+    "port": 5432,
+    "dialect": "postgres",
+    "logging": false
+  }
+}

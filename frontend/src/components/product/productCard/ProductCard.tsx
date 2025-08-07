@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Star, ShoppingCart, Heart, Eye, Tag } from 'lucide-react'
+import { Star, ShoppingCart, Heart, Eye } from 'lucide-react'
 import { Product } from '@/types/product/product'
 import { Button } from '@/components/ui/button/Button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card/Card'
@@ -22,12 +22,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   className = '',
 }) => {
   const {
-    id,
     name,
-    slug,
     price,
     originalPrice,
-    discountPercentage,
     thumbnail,
     images,
     rating,

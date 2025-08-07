@@ -1,6 +1,5 @@
 import React from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { 
   Grid3X3, 
   List, 
@@ -17,7 +16,6 @@ import { useProducts, useProductPagination } from '@/hooks/product/useProducts'
 import { Product } from '@/types/product/product'
 
 export const ProductListPage: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const { 
     products, 
@@ -39,8 +37,6 @@ export const ProductListPage: React.FC = () => {
     setItemsPerPage,
     isFirstPage,
     isLastPage,
-    hasNextPage,
-    hasPreviousPage,
     totalPagesArray,
     startItem,
     endItem,

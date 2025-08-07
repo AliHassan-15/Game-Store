@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { useAuthStore } from '@/store/slices/auth/authSlice'
-import { LoginCredentials, RegisterData } from '@/types/auth/auth'
 
 export const useAuth = () => {
   const {
@@ -13,7 +12,7 @@ export const useAuth = () => {
     login,
     register,
     logout,
-    refreshToken: refreshTokenAction,
+    refreshTokenAction,
     getProfile,
     checkAuth,
     clearError,
@@ -48,6 +47,34 @@ export const useAuth = () => {
     return () => clearInterval(tokenExpiryCheck)
   }, [accessToken, refreshTokenAction])
 
+  // Forgot password function
+  const forgotPassword = async (email: string) => {
+    try {
+      setLoading(true)
+      clearError()
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send reset email')
+      }
+      
+      return data
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to send reset email')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return {
     // State
     user,
@@ -61,7 +88,7 @@ export const useAuth = () => {
     login,
     register,
     logout,
-    refreshToken: refreshTokenAction,
+    refreshTokenAction,
     getProfile,
     checkAuth,
     clearError,
@@ -69,6 +96,7 @@ export const useAuth = () => {
     setUser,
     setTokens,
     clearAuth,
+    forgotPassword,
 
     // Computed values
     isAdmin: user?.role === 'admin',

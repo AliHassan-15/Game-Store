@@ -1,0 +1,14 @@
+{
+  "development": {
+    "dialect": "postgres",
+    "logging": false
+  },
+  "test": {
+    "dialect": "postgres",
+    "logging": false
+  },
+  "production": {
+    "dialect": "postgres",
+    "logging": false
+  }
+}

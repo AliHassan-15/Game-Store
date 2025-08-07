@@ -8,7 +8,6 @@ interface ProductListProps {
   products?: Product[]
   title?: string
   subtitle?: string
-  showFilters?: boolean
   onAddToCart?: (product: Product) => void
   onAddToWishlist?: (product: Product) => void
   onViewDetails?: (product: Product) => void
@@ -19,7 +18,6 @@ export const ProductList: React.FC<ProductListProps> = ({
   products: propProducts,
   title,
   subtitle,
-  showFilters = false,
   onAddToCart,
   onAddToWishlist,
   onViewDetails,

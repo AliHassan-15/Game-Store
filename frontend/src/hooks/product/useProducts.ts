@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { useProductStore } from '@/store/slices/product/productSlice'
-import { ProductSearchParams, ProductFilters } from '@/types/product/product'
 
 export const useProducts = () => {
   const {
