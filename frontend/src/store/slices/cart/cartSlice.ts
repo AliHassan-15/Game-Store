@@ -29,7 +29,7 @@ const initialState: CartState = {
 
 export const useCartStore = create<CartStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       ...initialState,
 
       fetchCart: async () => {

@@ -15,7 +15,12 @@ import { ProfilePage } from './pages/profile/ProfilePage'
 import { AddressesPage } from './pages/profile/AddressesPage'
 import { PaymentsPage } from './pages/profile/PaymentsPage'
 import { AdminLayout } from './components/admin/AdminLayout'
-import { DashboardPage } from './pages/admin/dashboard/DashboardPage'
+import { DashboardPage } from './pages/admin/DashboardPage'
+import { ProductsPage } from './pages/admin/ProductsPage'
+import { UsersPage } from './pages/admin/UsersPage'
+import { OrdersPage } from './pages/admin/OrdersPage'
+import { CategoriesPage } from './pages/admin/categories/CategoriesPage'
+import { ReviewsPage } from './pages/admin/reviews/ReviewsPage'
 import { AuthProvider } from './components/providers/AuthProvider'
 
 // Initialize Stripe
@@ -125,9 +130,11 @@ function App() {
               {/* Admin routes */}
               <Route path="/admin" element={<AdminLayout />}>
                 <Route path="dashboard" element={<DashboardPage />} />
-                <Route path="products" element={<div>Products Management</div>} />
-                <Route path="orders" element={<div>Orders Management</div>} />
-                <Route path="users" element={<div>Users Management</div>} />
+                <Route path="products" element={<ProductsPage />} />
+                <Route path="categories" element={<CategoriesPage />} />
+                <Route path="orders" element={<OrdersPage />} />
+                <Route path="users" element={<UsersPage />} />
+                <Route path="reviews" element={<ReviewsPage />} />
                 <Route path="analytics" element={<div>Analytics</div>} />
                 <Route path="settings" element={<div>Settings</div>} />
                 <Route index element={<DashboardPage />} />

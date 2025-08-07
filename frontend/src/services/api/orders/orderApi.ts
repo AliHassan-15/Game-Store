@@ -3,7 +3,7 @@ import {
   OrderListResponse,
   OrderResponse,
   OrderCreateData,
-  OrderUpdateData,
+
   OrderCreateResponse
 } from '@/types/order/order'
 

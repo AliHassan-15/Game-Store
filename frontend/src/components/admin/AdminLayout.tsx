@@ -7,7 +7,9 @@ import {
   Users, 
   BarChart3,
   Settings,
-  LogOut
+  LogOut,
+  Folder,
+  MessageSquare
 } from 'lucide-react'
 import { Button } from '@/components/ui/button/Button'
 import { useAuth } from '@/hooks/auth/useAuth'
@@ -15,8 +17,10 @@ import { useAuth } from '@/hooks/auth/useAuth'
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { name: 'Products', href: '/admin/products', icon: Package },
+  { name: 'Categories', href: '/admin/categories', icon: Folder },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
   { name: 'Users', href: '/admin/users', icon: Users },
+  { name: 'Reviews', href: '/admin/reviews', icon: MessageSquare },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ]

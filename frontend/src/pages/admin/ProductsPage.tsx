@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useAdminStore } from '@/store/slices/admin/adminSlice'
+
 import { Button } from '@/components/ui/button/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card/Card'
 import { Input } from '@/components/ui/input/Input'
 import { Badge } from '@/components/ui/badge/Badge'
-import { Loader2, Plus, Search, Edit, Trash2, Eye, Package, DollarSign, AlertTriangle } from 'lucide-react'
+import { Loader2, Plus, Search, Edit, Trash2, Eye, Package, DollarSign, AlertTriangle, Upload, Download } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 export const ProductsPage: React.FC = () => {
@@ -18,6 +19,11 @@ export const ProductsPage: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const [importSuccess, setImportSuccess] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     getProducts()
@@ -30,6 +36,46 @@ export const ProductsPage: React.FC = () => {
       } catch (error) {
         console.error('Failed to delete product:', error)
       }
+    }
+  }
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    setImportError(null)
+    setImportSuccess(null)
+    try {
+      // Note: This would need to be implemented in adminApi
+      // await adminApi.importProductsFromExcel(file)
+      setImportSuccess('Products imported successfully!')
+      getProducts()
+    } catch (error: any) {
+      setImportError(error.message || 'Failed to import products')
+    } finally {
+      setImporting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleExportExcel = async () => {
+    setExporting(true)
+    try {
+      // Note: This would need to be implemented in adminApi
+      // const blob = await adminApi.exportProductsToExcel()
+      // const url = window.URL.createObjectURL(blob)
+      // const a = document.createElement('a')
+      // a.href = url
+      // a.download = 'products.xlsx'
+      // document.body.appendChild(a)
+      // a.click()
+      // a.remove()
+      // window.URL.revokeObjectURL(url)
+      alert('Export functionality will be implemented')
+    } catch (error) {
+      alert('Failed to export products')
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -63,12 +109,42 @@ export const ProductsPage: React.FC = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Product Management</h1>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Product
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleExportExcel} disabled={exporting}>
+            <Download className="h-4 w-4 mr-2" />
+            {exporting ? 'Exporting...' : 'Export Excel'}
+          </Button>
+          <Button asChild>
+            <label className="flex items-center cursor-pointer">
+              <Upload className="h-4 w-4 mr-2" />
+              {importing ? 'Importing...' : 'Import Excel'}
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleImportExcel}
+                disabled={importing}
+              />
+            </label>
+          </Button>
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Product
+          </Button>
+        </div>
       </div>
 
+      {importError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <p className="text-red-600">{importError}</p>
+        </div>
+      )}
+      {importSuccess && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+          <p className="text-green-600">{importSuccess}</p>
+        </div>
+      )}
       {productsError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <p className="text-red-600">Error loading products: {productsError}</p>

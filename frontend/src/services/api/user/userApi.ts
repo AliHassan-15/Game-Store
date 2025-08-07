@@ -1,10 +1,10 @@
 import axios from 'axios'
 import {
-  UserProfile,
+
   UserProfileUpdate,
-  UserAddress,
+
   UserAddressCreate,
-  UserPayment,
+
   UserPaymentCreate,
   UserAddressListResponse,
   UserPaymentMethodListResponse,
