@@ -26,6 +26,7 @@ const authApi = axios.create({
 // Request interceptor to add auth token
 authApi.interceptors.request.use(
   (config) => {
+    // Try to get token from localStorage first
     const token = localStorage.getItem('accessToken')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -65,7 +66,7 @@ authApi.interceptors.response.use(
         // Refresh token failed, redirect to login
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
-        window.location.href = '/login'
+        window.location.href = '/auth'
       }
     }
 
@@ -77,12 +78,30 @@ export const authService = {
   // Register new user
   async register(data: RegisterData): Promise<AuthResponse> {
     const response = await authApi.post('/register', data)
+    
+    // Store tokens if they exist in the response
+    if (response.data.success && response.data.data) {
+      const { accessToken, refreshToken } = response.data.data
+      if (accessToken && refreshToken) {
+        this.setTokens(accessToken, refreshToken)
+      }
+    }
+    
     return response.data
   },
 
   // Login user
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     const response = await authApi.post('/login', credentials)
+    
+    // Store tokens if they exist in the response
+    if (response.data.success && response.data.data) {
+      const { accessToken, refreshToken } = response.data.data
+      if (accessToken && refreshToken) {
+        this.setTokens(accessToken, refreshToken)
+      }
+    }
+    
     return response.data
   },
 

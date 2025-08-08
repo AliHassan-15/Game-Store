@@ -10,6 +10,7 @@ const {
   ActivityLog 
 } = require('../../models');
 const { sequelize } = require('../../config/database');
+const { Op } = require('sequelize');
 const logger = require('../../utils/logger/logger');
 
 class AdminController {
@@ -47,8 +48,8 @@ class AdminController {
 
       const recentSales = await Order.findAll({
         where: {
-          status: 'paid',
-          createdAt: { [sequelize.Op.gte]: thirtyDaysAgo }
+          paymentStatus: 'paid',
+          createdAt: { [Op.gte]: thirtyDaysAgo }
         },
         attributes: [
           [sequelize.fn('SUM', sequelize.col('total')), 'totalSales'],
@@ -108,12 +109,12 @@ class AdminController {
       // Get sales chart data (last 7 days)
       const salesChartData = await Order.findAll({
         where: {
-          status: 'paid',
-          createdAt: { [sequelize.Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+          paymentStatus: 'paid',
+          createdAt: { [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
         },
         attributes: [
           [sequelize.fn('DATE', sequelize.col('createdAt')), 'date'],
-          [sequelize.fn('SUM', sequelize.col('total')), 'sales'],
+          [sequelize.fn('SUM', sequelize.col('total_amount')), 'sales'],
           [sequelize.fn('COUNT', sequelize.col('id')), 'orders']
         ],
         group: [sequelize.fn('DATE', sequelize.col('createdAt'))],
@@ -218,11 +219,11 @@ class AdminController {
       if (role) whereClause.role = role;
       if (isActive !== undefined) whereClause.isActive = isActive === 'true';
       if (search) {
-        whereClause[sequelize.Op.or] = [
-          { firstName: { [sequelize.Op.iLike]: `%${search}%` } },
-          { lastName: { [sequelize.Op.iLike]: `%${search}%` } },
-          { email: { [sequelize.Op.iLike]: `%${search}%` } }
-        ];
+              whereClause[Op.or] = [
+        { firstName: { [Op.iLike]: `%${search}%` } },
+        { lastName: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } }
+      ];
       }
 
       const { count, rows: users } = await User.findAndCountAll({
@@ -589,7 +590,7 @@ class AdminController {
       const salesData = await Order.findAll({
         where: {
           status: 'paid',
-          createdAt: { [sequelize.Op.gte]: startDate }
+          createdAt: { [Op.gte]: startDate }
         },
         attributes: [
           [sequelize.fn('DATE', sequelize.col('createdAt')), 'date'],
@@ -605,15 +606,15 @@ class AdminController {
         attributes: [
           'productId',
           [sequelize.fn('SUM', sequelize.col('quantity')), 'totalSold'],
-          [sequelize.fn('SUM', sequelize.col('total')), 'totalRevenue']
+          [sequelize.fn('SUM', sequelize.col('total_amount')), 'totalRevenue']
         ],
         include: [
           {
             model: Order,
             as: 'order',
             where: {
-              status: 'paid',
-              createdAt: { [sequelize.Op.gte]: startDate }
+              paymentStatus: 'paid',
+              createdAt: { [Op.gte]: startDate }
             }
           },
           {
@@ -630,7 +631,7 @@ class AdminController {
       // Get category sales
       const categorySales = await OrderItem.findAll({
         attributes: [
-          [sequelize.fn('SUM', sequelize.col('total')), 'totalRevenue'],
+          [sequelize.fn('SUM', sequelize.col('total_amount')), 'totalRevenue'],
           [sequelize.fn('SUM', sequelize.col('quantity')), 'totalSold']
         ],
         include: [
@@ -638,8 +639,8 @@ class AdminController {
             model: Order,
             as: 'order',
             where: {
-              status: 'paid',
-              createdAt: { [sequelize.Op.gte]: startDate }
+              paymentStatus: 'paid',
+              createdAt: { [Op.gte]: startDate }
             }
           },
           {
@@ -655,7 +656,7 @@ class AdminController {
           }
         ],
         group: ['product.categoryId', 'product.category.id', 'product.category.name'],
-        order: [[sequelize.fn('SUM', sequelize.col('total')), 'DESC']]
+        order: [[sequelize.fn('SUM', sequelize.col('total_amount')), 'DESC']]
       });
 
       // Calculate totals
@@ -1324,18 +1325,226 @@ class AdminController {
    */
   async exportUsers(req, res) {
     try {
-      // TODO: Implement users export
-      res.json({
-        success: true,
-        message: 'Users exported successfully'
+      const { format = 'csv' } = req.query;
+      
+      const users = await User.findAll({
+        attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'isVerified', 'createdAt'],
+        order: [['createdAt', 'DESC']]
       });
 
+      if (format === 'csv') {
+        const csvData = users.map(user => ({
+          ID: user.id,
+          'First Name': user.firstName,
+          'Last Name': user.lastName,
+          Email: user.email,
+          Role: user.role,
+          'Is Verified': user.isVerified,
+          'Created At': user.createdAt
+        }));
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=users.csv');
+        
+        // Simple CSV generation
+        const csv = [
+          Object.keys(csvData[0]).join(','),
+          ...csvData.map(row => Object.values(row).join(','))
+        ].join('\n');
+
+        res.send(csv);
+      } else {
+        res.json({
+          success: true,
+          data: { users }
+        });
+      }
     } catch (error) {
       logger.error('Export users error:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to export users',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        message: 'Failed to export users'
+      });
+    }
+  }
+
+  // Get categories for admin
+  async getCategories(req, res) {
+    try {
+      const { page = 1, limit = 20, search, isActive } = req.query;
+      const offset = (page - 1) * limit;
+
+      const whereClause = {};
+      if (search) {
+        whereClause.name = { [Op.iLike]: `%${search}%` };
+      }
+      if (isActive !== undefined) {
+        whereClause.isActive = isActive === 'true';
+      }
+
+      const { count, rows: categories } = await Category.findAndCountAll({
+        where: whereClause,
+        include: [
+          {
+            model: SubCategory,
+            as: 'subCategories',
+            attributes: ['id', 'name', 'slug', 'isActive']
+          }
+        ],
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        order: [['name', 'ASC']]
+      });
+
+      // Add product count for each category
+      const categoriesWithCounts = await Promise.all(
+        categories.map(async (category) => {
+          const productCount = await Product.count({
+            where: { categoryId: category.id }
+          });
+          return {
+            ...category.toJSON(),
+            productCount
+          };
+        })
+      );
+
+      const totalPages = Math.ceil(count / limit);
+
+      res.json({
+        success: true,
+        data: {
+          categories: categoriesWithCounts,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages,
+            totalItems: count,
+            itemsPerPage: parseInt(limit)
+          }
+        }
+      });
+    } catch (error) {
+      logger.error('Get categories error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get categories'
+      });
+    }
+  }
+
+  // Get category statistics
+  async getCategoryStats(req, res) {
+    try {
+      const stats = await Category.findAll({
+        attributes: [
+          'id',
+          'name',
+          [sequelize.fn('COUNT', sequelize.col('products.id')), 'productCount']
+        ],
+        include: [
+          {
+            model: Product,
+            as: 'products',
+            attributes: []
+          }
+        ],
+        group: ['Category.id', 'Category.name'],
+        order: [[sequelize.fn('COUNT', sequelize.col('products.id')), 'DESC']]
+      });
+
+      res.json({
+        success: true,
+        data: { stats }
+      });
+    } catch (error) {
+      logger.error('Get category stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get category statistics'
+      });
+    }
+  }
+
+  // Get reviews for admin
+  async getReviews(req, res) {
+    try {
+      const { page = 1, limit = 20, search, rating, isApproved } = req.query;
+      const offset = (page - 1) * limit;
+
+      const whereClause = {};
+      if (search) {
+        whereClause.comment = { [Op.iLike]: `%${search}%` };
+      }
+      if (rating) {
+        whereClause.rating = parseInt(rating);
+      }
+      if (isApproved !== undefined) {
+        whereClause.isApproved = isApproved === 'true';
+      }
+
+      const { count, rows: reviews } = await Review.findAndCountAll({
+        where: whereClause,
+        include: [
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'firstName', 'lastName', 'email']
+          },
+          {
+            model: Product,
+            as: 'product',
+            attributes: ['id', 'name', 'slug']
+          }
+        ],
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        order: [['createdAt', 'DESC']]
+      });
+
+      const totalPages = Math.ceil(count / limit);
+
+      res.json({
+        success: true,
+        data: {
+          reviews,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages,
+            totalItems: count,
+            itemsPerPage: parseInt(limit)
+          }
+        }
+      });
+    } catch (error) {
+      logger.error('Get reviews error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get reviews'
+      });
+    }
+  }
+
+  // Get review statistics
+  async getReviewStats(req, res) {
+    try {
+      const stats = await Review.findAll({
+        attributes: [
+          [sequelize.fn('AVG', sequelize.col('rating')), 'averageRating'],
+          [sequelize.fn('COUNT', sequelize.col('id')), 'totalReviews'],
+          [sequelize.fn('COUNT', sequelize.literal('CASE WHEN is_approved = true THEN 1 END')), 'approvedReviews'],
+          [sequelize.fn('COUNT', sequelize.literal('CASE WHEN is_approved = false THEN 1 END')), 'pendingReviews']
+        ]
+      });
+
+      res.json({
+        success: true,
+        data: { stats: stats[0] }
+      });
+    } catch (error) {
+      logger.error('Get review stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get review statistics'
       });
     }
   }

@@ -1,30 +1,19 @@
 import { Product } from '../product/product'
 
 export interface Cart {
-  id: string
-  userId: string
+  id: string | null
+  userId: string | null
   items: CartItem[]
   subtotal: number
-  tax: number
-  discount: number
-  total: number
-  currency: string
   totalItems: number
-  createdAt: string
-  updatedAt: string
 }
 
 export interface CartItem {
   id: string
-  cartId: string
   productId: string
   quantity: number
-  unitPrice: number
-  totalPrice: number
-  createdAt: string
-  updatedAt: string
-  
-  // Relations
+  price: number
+  comparePrice?: number
   product: Product
 }
 

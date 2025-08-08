@@ -161,7 +161,8 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     try {
       set({ usersLoading: true, usersError: null })
       const response = await adminApi.getUsers(params)
-      set({ users: response.data, usersLoading: false })
+      const responseData = response.data as any
+      set({ users: responseData?.users || [], usersLoading: false })
     } catch (error: any) {
       set({
         usersLoading: false,
@@ -207,7 +208,9 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     try {
       set({ productsLoading: true, productsError: null })
       const response = await adminApi.getProducts(params)
-      set({ products: response.data, productsLoading: false })
+      // API returns { success: true, data: { products: [...] } }
+      const responseData = response.data as any
+      set({ products: responseData?.products || [], productsLoading: false })
     } catch (error: any) {
       set({
         productsLoading: false,
@@ -264,7 +267,8 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     try {
       set({ categoriesLoading: true, categoriesError: null })
       const response = await adminApi.getCategories()
-      set({ categories: response.data, categoriesLoading: false })
+      const responseData = response.data as any
+      set({ categories: responseData?.categories || [], categoriesLoading: false })
     } catch (error: any) {
       set({
         categoriesLoading: false,
@@ -311,7 +315,9 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     try {
       set({ ordersLoading: true, ordersError: null })
       const response = await adminApi.getOrders(params)
-      set({ orders: response.data, ordersLoading: false })
+      // API returns { success: true, data: { orders: [...] } }
+      const responseData = response.data as any
+      set({ orders: responseData?.orders || [], ordersLoading: false })
     } catch (error: any) {
       set({
         ordersLoading: false,
@@ -346,7 +352,8 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     try {
       set({ reviewsLoading: true, reviewsError: null })
       const response = await adminApi.getReviews(params)
-      set({ reviews: response.data, reviewsLoading: false })
+      const responseData = response.data as any
+      set({ reviews: responseData?.reviews || [], reviewsLoading: false })
     } catch (error: any) {
       set({
         reviewsLoading: false,

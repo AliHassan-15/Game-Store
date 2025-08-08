@@ -4,7 +4,23 @@ class CartController {
 
   async getCart(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user?.id;
+
+      // If no user is authenticated, return empty cart
+      if (!userId) {
+        return res.json({
+          success: true,
+          data: {
+            cart: {
+              id: null,
+              userId: null,
+              subtotal: 0,
+              totalItems: 0,
+              items: []
+            }
+          }
+        });
+      }
 
       // Find or create user's cart
       let cart = await Cart.findOne({

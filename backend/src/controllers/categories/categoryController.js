@@ -1,5 +1,6 @@
 const { Category, SubCategory, Product } = require('../../models');
 const { sequelize } = require('../../config/database');
+const { Op } = require('sequelize');
 const logger = require('../../utils/logger/logger');
 const xlsx = require('xlsx');
 class CategoryController {
@@ -138,7 +139,7 @@ class CategoryController {
       // Check if category already exists
       const existingCategory = await Category.findOne({
         where: { 
-          [sequelize.Op.or]: [
+          [Op.or]: [
             { name: name.trim() },
             { slug: slug || name.toLowerCase().replace(/\s+/g, '-') }
           ]
@@ -207,11 +208,11 @@ class CategoryController {
       if (name || slug) {
         const existingCategory = await Category.findOne({
           where: {
-            [sequelize.Op.or]: [
+            [Op.or]: [
               { name: name || category.name },
               { slug: slug || category.slug }
             ],
-            id: { [sequelize.Op.ne]: id }
+            id: { [Op.ne]: id }
           }
         });
 
@@ -408,7 +409,7 @@ class CategoryController {
       // Check if subcategory already exists
       const existingSubcategory = await SubCategory.findOne({
         where: { 
-          [sequelize.Op.or]: [
+          [Op.or]: [
             { name: name.trim() },
             { slug: slug || name.toLowerCase().replace(/\s+/g, '-') }
           ]
@@ -479,11 +480,11 @@ class CategoryController {
       if (name || slug) {
         const existingSubcategory = await SubCategory.findOne({
           where: {
-            [sequelize.Op.or]: [
+            [Op.or]: [
               { name: name || subcategory.name },
               { slug: slug || subcategory.slug }
             ],
-            id: { [sequelize.Op.ne]: id }
+            id: { [Op.ne]: id }
           }
         });
 
@@ -792,8 +793,53 @@ class CategoryController {
    */
   async getCategories(req, res) {
     try {
-      // Use the existing getAllCategories method
-      return await this.getAllCategories(req, res);
+      const { includeSubcategories = true, includeProductCount = true } = req.query;
+
+      const includeOptions = [];
+      
+      if (includeSubcategories === 'true') {
+        includeOptions.push({
+          model: SubCategory,
+          as: 'subCategories',
+          attributes: ['id', 'name', 'slug', 'description', 'isActive']
+        });
+      }
+
+      const categories = await Category.findAll({
+        where: { isActive: true },
+        include: includeOptions,
+        order: [['name', 'ASC']]
+      });
+
+      let result = categories.map(category => ({
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        isActive: category.isActive,
+        createdAt: category.createdAt,
+        subCategories: category.subCategories || []
+      }));
+
+      // Add product count if requested
+      if (includeProductCount === 'true') {
+        result = await Promise.all(
+          result.map(async (category) => {
+            const productCount = await Product.count({
+              where: { categoryId: category.id, isActive: true }
+            });
+            return { ...category, productCount };
+          })
+        );
+      }
+
+      res.json({
+        success: true,
+        data: {
+          categories: result
+        }
+      });
+
     } catch (error) {
       logger.error('Get categories error:', error);
       res.status(500).json({

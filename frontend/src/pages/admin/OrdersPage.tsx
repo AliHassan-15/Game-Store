@@ -32,7 +32,7 @@ export const OrdersPage: React.FC = () => {
     }
   }
 
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = (Array.isArray(orders) ? orders : []).filter(order => {
     const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          `${order.userFirstName} ${order.userLastName}`.toLowerCase().includes(searchTerm.toLowerCase())

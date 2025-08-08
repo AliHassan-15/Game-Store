@@ -10,36 +10,42 @@ const redisConfig = {
 
 // Redis client configuration
 const redisClient = redis.createClient({
-  host: redisConfig.redisHost,
-  port: redisConfig.redisPort,
-  password: redisConfig.redisPassword,
-  retry_strategy: function(retryOptions) {
-    if (retryOptions.error && retryOptions.error.code === 'ECONNREFUSED') {
-      if (process.env.NODE_ENV === 'development') {
-        // In development, don't retry if Redis is not available
-        return undefined;
+  socket: {
+    host: redisConfig.redisHost,
+    port: redisConfig.redisPort,
+    reconnectStrategy: (retries) => {
+      if (retries > 10) {
+        logger.error('Redis max retry attempts reached');
+        return new Error('Redis max retry attempts reached');
       }
-      logger.error('Redis server refused the connection');
-      return new Error('Redis server refused the connection');
+      return Math.min(retries * 100, 3000);
     }
-    if (retryOptions.total_retry_time > 1000 * 60 * 60) {
-      logger.error('Redis retry time exhausted');
-      return new Error('Redis retry time exhausted');
-    }
-    if (retryOptions.attempt > 10) {
-      logger.error('Redis max retry attempts reached');
-      return undefined;
-    }
-    // Retry with exponential backoff
-    return Math.min(retryOptions.attempt * 100, 3000);
-  }
+  },
+  password: redisConfig.redisPassword
 });
+
+// Connect to Redis
+const connectRedis = async () => {
+  try {
+    await redisClient.connect();
+    logger.info('Redis client connected');
+    return true;
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      logger.warn('Redis connection failed in development mode, continuing without Redis');
+      return false;
+    }
+    logger.error('Redis connection failed:', error);
+    throw error;
+  }
+};
+
+// Check if Redis is connected
+const isRedisConnected = () => {
+  return redisClient.isReady;
+};
 
 // Redis event handlers
-redisClient.on('connect', () => {
-  logger.info('Redis client connected');
-});
-
 redisClient.on('ready', () => {
   logger.info('Redis client ready');
 });
@@ -68,10 +74,24 @@ redisClient.on('reconnecting', () => {
   logger.info('Redis client reconnecting...');
 });
 
+// Initialize Redis connection
+connectRedis();
+
 // Redis utility functions
 const redisUtils = {
   // Set key with expiration
   setWithExpiration: async (key, seconds, value) => {
+    try {
+      await redisClient.setEx(key, seconds, JSON.stringify(value));
+      return true;
+    } catch (error) {
+      logger.error('Redis setEx error:', error.message);
+      return false;
+    }
+  },
+
+  // Set key with expiration (alias for setWithExpiration)
+  setEx: async (key, seconds, value) => {
     try {
       await redisClient.setEx(key, seconds, JSON.stringify(value));
       return true;
@@ -125,6 +145,16 @@ const redisUtils = {
     }
   },
 
+  // Get TTL of key
+  getTTL: async (key) => {
+    try {
+      return await redisClient.ttl(key);
+    } catch (error) {
+      logger.error('Redis ttl error:', error.message);
+      return -1;
+    }
+  },
+
   // Get all keys matching pattern
   getKeysByPattern: async (pattern) => {
     try {
@@ -135,8 +165,30 @@ const redisUtils = {
     }
   },
 
+  // Get all keys matching pattern (alias for getKeysByPattern)
+  keys: async (pattern) => {
+    try {
+      return await redisClient.keys(pattern);
+    } catch (error) {
+      logger.error('Redis keys error:', error.message);
+      return [];
+    }
+  },
+
   // Flush all data (use with caution)
   clearAllData: async () => {
+    try {
+      await redisClient.flushAll();
+      logger.info('Redis cache cleared');
+      return true;
+    } catch (error) {
+      logger.error('Redis flushAll error:', error.message);
+      return false;
+    }
+  },
+
+  // Flush all data (alias for clearAllData)
+  flushAll: async () => {
     try {
       await redisClient.flushAll();
       logger.info('Redis cache cleared');
@@ -187,6 +239,9 @@ const redisUtils = {
 // Test Redis connection
 const testRedisConnection = async () => {
   try {
+    if (!redisClient.isReady) {
+      await redisClient.connect();
+    }
     await redisClient.ping();
     logger.info('Redis connection test successful');
     return true;

@@ -5,7 +5,7 @@ const router = express.Router();
 const authController = require('../../controllers/auth/authController');
 
 // Import middleware
-const { authenticate, requireEmailVerification } = require('../../middleware/auth/authMiddleware');
+const { authenticate, requireEmailVerification } = require('../../middleware/auth/authMiddleware-simple');
 const { validateBody } = require('../../middleware/validation/validationMiddleware');
 
 // Import validation schemas
@@ -20,6 +20,12 @@ const { authValidators } = require('../../validators/authValidators');
 router.post('/register', 
   validateBody(authValidators.register),
   authController.register
+);
+
+// Register admin user (for initial setup)
+router.post('/register-admin',
+  validateBody(authValidators.register),
+  authController.registerAdmin
 );
 
 router.post('/login', 

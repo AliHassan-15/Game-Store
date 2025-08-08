@@ -12,9 +12,9 @@ const RedisStore = require('rate-limit-redis').default;
 
 // General API rate limiter
 const apiLimiter = rateLimit({
-  store: new RedisStore({
-    sendCommand: (...args) => redisClient.call(...args),
-  }),
+  // store: new RedisStore({
+  //   sendCommand: (...args) => redisClient.call(...args),
+  // }), // Temporarily disabled Redis store
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
   message: {
@@ -41,9 +41,9 @@ const apiLimiter = rateLimit({
 
 // Authentication rate limiter (more strict)
 const authLimiter = rateLimit({
-  store: new RedisStore({
-    sendCommand: (...args) => redisClient.call(...args),
-  }),
+  // store: new RedisStore({
+  //   sendCommand: (...args) => redisClient.call(...args),
+  // }), // Temporarily disabled Redis store
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // Limit each IP to 5 login attempts per windowMs
   skipSuccessfulRequests: true, // Don't count successful requests

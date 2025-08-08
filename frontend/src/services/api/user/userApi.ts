@@ -11,11 +11,14 @@ import {
   UserProfileResponse
 } from '@/types/user/user'
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
+
 const userApi = axios.create({
-  baseURL: '/api/v1/users',
+  baseURL: `${API_BASE_URL}/users`,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 })
 
 // Add auth token to requests

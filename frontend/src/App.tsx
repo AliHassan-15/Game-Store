@@ -1,9 +1,10 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Elements } from '@stripe/react-stripe-js'
-import { loadStripe } from '@stripe/stripe-js'
+
 import { Header } from './components/layout/header/Header'
 import { AuthPage } from './pages/auth/AuthPage'
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage'
+import { GoogleCallbackPage } from './pages/auth/GoogleCallbackPage'
 import { ProductListPage } from './pages/products/ProductListPage'
 import { ProductDetailPage } from './pages/products/ProductDetailPage'
 import { CartPage } from './pages/cart/CartPage'
@@ -21,10 +22,14 @@ import { UsersPage } from './pages/admin/UsersPage'
 import { OrdersPage } from './pages/admin/OrdersPage'
 import { CategoriesPage } from './pages/admin/categories/CategoriesPage'
 import { ReviewsPage } from './pages/admin/reviews/ReviewsPage'
+import { AnalyticsPage } from './pages/admin/AnalyticsPage'
+import { SettingsPage } from './pages/admin/SettingsPage'
 import { AuthProvider } from './components/providers/AuthProvider'
+import { ProtectedRoute } from './components/auth/ProtectedRoute'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
-// Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_your_key_here')
+// Initialize Stripe (temporarily disabled to avoid warnings)
+const stripePromise = Promise.resolve(null)
 
 function App() {
   return (
@@ -58,86 +63,123 @@ function App() {
                   </main>
                 </>
               } />
+              <Route path="/categories" element={
+                <>
+                  <Header />
+                  <main>
+                    <ProductListPage />
+                  </main>
+                </>
+              } />
+              <Route path="/categories/:slug" element={
+                <>
+                  <Header />
+                  <main>
+                    <ProductListPage />
+                  </main>
+                </>
+              } />
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/auth/callback" element={<GoogleCallbackPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
               {/* Protected routes */}
               <Route path="/cart" element={
-                <>
-                  <Header />
-                  <main>
-                    <CartPage />
-                  </main>
-                </>
+                <ProtectedRoute requireAuth={true}>
+                  <>
+                    <Header />
+                    <main>
+                      <CartPage />
+                    </main>
+                  </>
+                </ProtectedRoute>
               } />
               <Route path="/checkout" element={
-                <>
-                  <Header />
-                  <main>
-                    <CheckoutPage />
-                  </main>
-                </>
+                <ProtectedRoute requireAuth={true}>
+                  <>
+                    <Header />
+                    <main>
+                      <CheckoutPage />
+                    </main>
+                  </>
+                </ProtectedRoute>
               } />
               <Route path="/orders" element={
-                <>
-                  <Header />
-                  <main>
-                    <OrderListPage />
-                  </main>
-                </>
+                <ProtectedRoute requireAuth={true}>
+                  <>
+                    <Header />
+                    <main>
+                      <OrderListPage />
+                    </main>
+                  </>
+                </ProtectedRoute>
               } />
               <Route path="/orders/:id" element={
-                <>
-                  <Header />
-                  <main>
-                    <OrderDetailPage />
-                  </main>
-                </>
+                <ProtectedRoute requireAuth={true}>
+                  <>
+                    <Header />
+                    <main>
+                      <OrderDetailPage />
+                    </main>
+                  </>
+                </ProtectedRoute>
               } />
               <Route path="/orders/confirmation" element={
-                <>
-                  <Header />
-                  <main>
-                    <OrderConfirmationPage />
-                  </main>
-                </>
+                <ProtectedRoute requireAuth={true}>
+                  <>
+                    <Header />
+                    <main>
+                      <OrderConfirmationPage />
+                    </main>
+                  </>
+                </ProtectedRoute>
               } />
               <Route path="/profile" element={
-                <>
-                  <Header />
-                  <main>
-                    <ProfilePage />
-                  </main>
-                </>
+                <ProtectedRoute requireAuth={true}>
+                  <>
+                    <Header />
+                    <main>
+                      <ProfilePage />
+                    </main>
+                  </>
+                </ProtectedRoute>
               } />
               <Route path="/profile/addresses" element={
-                <>
-                  <Header />
-                  <main>
-                    <AddressesPage />
-                  </main>
-                </>
+                <ProtectedRoute requireAuth={true}>
+                  <>
+                    <Header />
+                    <main>
+                      <AddressesPage />
+                    </main>
+                  </>
+                </ProtectedRoute>
               } />
               <Route path="/profile/payments" element={
-                <>
-                  <Header />
-                  <main>
-                    <PaymentsPage />
-                  </main>
-                </>
+                <ProtectedRoute requireAuth={true}>
+                  <>
+                    <Header />
+                    <main>
+                      <PaymentsPage />
+                    </main>
+                  </>
+                </ProtectedRoute>
               } />
 
               {/* Admin routes */}
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route path="dashboard" element={<DashboardPage />} />
-                <Route path="products" element={<ProductsPage />} />
-                <Route path="categories" element={<CategoriesPage />} />
-                <Route path="orders" element={<OrdersPage />} />
-                <Route path="users" element={<UsersPage />} />
-                <Route path="reviews" element={<ReviewsPage />} />
-                <Route path="analytics" element={<div>Analytics</div>} />
-                <Route path="settings" element={<div>Settings</div>} />
-                <Route index element={<DashboardPage />} />
+              <Route path="/admin" element={
+                <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }>
+                <Route path="dashboard" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+                <Route path="products" element={<ErrorBoundary><ProductsPage /></ErrorBoundary>} />
+                <Route path="categories" element={<ErrorBoundary><CategoriesPage /></ErrorBoundary>} />
+                <Route path="orders" element={<ErrorBoundary><OrdersPage /></ErrorBoundary>} />
+                <Route path="users" element={<ErrorBoundary><UsersPage /></ErrorBoundary>} />
+                <Route path="reviews" element={<ErrorBoundary><ReviewsPage /></ErrorBoundary>} />
+                <Route path="analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
+                <Route path="settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
+                <Route index element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
               </Route>
             </Routes>
           </div>

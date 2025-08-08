@@ -30,11 +30,11 @@ export const ReviewsPage: React.FC = () => {
     }
   }
 
-  const filteredReviews = reviews.filter(review => {
-    const matchesSearch = review.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         review.userFirstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         review.userLastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         review.title.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredReviews = (Array.isArray(reviews) ? reviews : []).filter(review => {
+    const matchesSearch = (review.productName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (review.userFirstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (review.userLastName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (review.title || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = filterStatus === 'all' || review.moderationStatus === filterStatus
     return matchesSearch && matchesStatus
   })
@@ -59,10 +59,11 @@ export const ReviewsPage: React.FC = () => {
   }
 
   const renderStars = (rating: number) => {
+    const safeRating = rating || 0
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`h-4 w-4 ${i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+        className={`h-4 w-4 ${i < safeRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
       />
     ))
   }
@@ -152,29 +153,29 @@ export const ReviewsPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-gray-400" />
                           <span className="font-medium">
-                            {review.userFirstName} {review.userLastName}
+                            {review.userFirstName || 'Unknown'} {review.userLastName || 'User'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Package className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-600">{review.productName}</span>
+                          <span className="text-gray-600">{review.productName || 'Unknown Product'}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          {renderStars(review.rating)}
+                          {renderStars(review.rating || 0)}
                         </div>
-                        <Badge className={getStatusColor(review.moderationStatus)}>
-                          {review.moderationStatus.charAt(0).toUpperCase() + review.moderationStatus.slice(1)}
+                        <Badge className={getStatusColor(review.moderationStatus || 'pending')}>
+                          {(review.moderationStatus || 'pending').charAt(0).toUpperCase() + (review.moderationStatus || 'pending').slice(1)}
                         </Badge>
                         {review.isVerified && (
                           <Badge variant="outline" className="text-green-600">Verified</Badge>
                         )}
                       </div>
                       
-                      <h3 className="text-lg font-semibold mb-2">{review.title}</h3>
-                      <p className="text-gray-700 mb-4">{review.content}</p>
+                      <h3 className="text-lg font-semibold mb-2">{review.title || 'No Title'}</h3>
+                      <p className="text-gray-700 mb-4">{review.content || 'No content'}</p>
                       
                       <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span>Posted {formatDate(review.createdAt)}</span>
+                        <span>Posted {formatDate(review.createdAt || new Date().toISOString())}</span>
                         {review.moderationNotes && (
                           <span className="text-orange-600">
                             Notes: {review.moderationNotes}
@@ -184,7 +185,7 @@ export const ReviewsPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 ml-4">
-                      {review.moderationStatus === 'pending' && (
+                      {(review.moderationStatus || 'pending') === 'pending' && (
                         <>
                           <Button
                             size="sm"

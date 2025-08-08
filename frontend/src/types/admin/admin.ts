@@ -7,9 +7,15 @@ export interface AdminDashboardStats {
   lowStockProducts: number
   averageRating: number
   totalViews: number
+  newUsersThisMonth: number
+  activeProducts: number
+  pendingOrders: number
+  revenueThisMonth: number
   recentOrdersList?: AdminOrder[]
   topProducts?: AdminProduct[]
   recentActivities?: AdminActivityLog[]
+  recentOrders?: AdminOrder[]
+  outOfStockProducts?: AdminProduct[]
 }
 
 export interface AdminUser {

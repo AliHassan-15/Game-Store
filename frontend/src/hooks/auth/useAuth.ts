@@ -109,7 +109,7 @@ export const useAuth = () => {
 }
 
 // Hook for protected routes
-export const useRequireAuth = (redirectTo = '/login') => {
+export const useRequireAuth = (redirectTo = '/auth') => {
   const { isAuthenticated, isLoading } = useAuth()
 
   useEffect(() => {

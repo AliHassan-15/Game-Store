@@ -36,7 +36,7 @@ export const cartService = {
 
   // Add item to cart
   async addItem(data: CartItemAddData): Promise<CartResponse> {
-    const response = await cartApi.post('/items', data)
+    const response = await cartApi.post('/add', data)
     return response.data
   },
 

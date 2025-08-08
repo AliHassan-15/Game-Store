@@ -1,0 +1,41 @@
+:5000/api/v1/categories/:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+productSlice.ts:241 Failed to fetch categories: AxiosError
+fetchCategories @ productSlice.ts:241Understand this error
+:5000/api/v1/cart/:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+:5000/api/v1/products/?page=1&limit=20&sortBy=createdAt&sortOrder=desc:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+:5000/api/v1/categories/:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+productSlice.ts:241 Failed to fetch categories: AxiosError
+fetchCategories @ productSlice.ts:241Understand this error
+:5000/api/v1/products/featured?limit=10:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+productSlice.ts:211 Failed to fetch featured products: AxiosError
+fetchFeaturedProducts @ productSlice.ts:211Understand this error
+:5000/api/v1/products/on-sale?limit=10:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+productSlice.ts:226 Failed to fetch on-sale products: AxiosError
+fetchOnSaleProducts @ productSlice.ts:226Understand this error
+:5000/api/v1/categories/:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+productSlice.ts:241 Failed to fetch categories: AxiosError
+fetchCategories @ productSlice.ts:241Understand this error
+:5000/api/v1/products/?page=1&limit=20&sortBy=createdAt&sortOrder=desc:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+:5000/api/v1/products/featured?limit=10:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+productSlice.ts:211 Failed to fetch featured products: AxiosError
+fetchFeaturedProducts @ productSlice.ts:211Understand this error
+:5000/api/v1/categories/:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+productSlice.ts:241 Failed to fetch categories: AxiosError
+fetchCategories @ productSlice.ts:241Understand this error
+:5000/api/v1/products/?page=1&limit=20&sortBy=createdAt&sortOrder=desc:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+:5000/api/v1/products/on-sale?limit=10:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+productSlice.ts:226 Failed to fetch on-sale products: AxiosError
+fetchOnSaleProducts @ productSlice.ts:226Understand this error
+:5000/api/v1/products/featured?limit=10:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+productSlice.ts:211 Failed to fetch featured products: AxiosError
+fetchFeaturedProducts @ productSlice.ts:211Understand this error
+:5000/api/v1/products/on-sale?limit=10:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+productSlice.ts:226 Failed to fetch on-sale products: AxiosError
+fetchOnSaleProducts @ productSlice.ts:226Understand this error
+:5000/api/v1/products/featured?limit=10:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+productSlice.ts:211 Failed to fetch featured products: AxiosError
+fetchFeaturedProducts @ productSlice.ts:211Understand this error
+:5000/api/v1/products/on-sale?limit=10:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+productSlice.ts:226 Failed to fetch on-sale products: AxiosError
+fetchOnSaleProducts @ productSlice.ts:226Understand this error
+:5000/api/v1/products/?page=1&limit=20&sortBy=createdAt&sortOrder=desc:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error

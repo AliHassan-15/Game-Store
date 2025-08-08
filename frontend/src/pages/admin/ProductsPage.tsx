@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useAdminStore } from '@/store/slices/admin/adminSlice'
 
+
 import { Button } from '@/components/ui/button/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card/Card'
 import { Input } from '@/components/ui/input/Input'
@@ -16,6 +17,9 @@ export const ProductsPage: React.FC = () => {
     getProducts,
     deleteProduct,
   } = useAdminStore()
+
+  // Authentication check (temporarily disabled for development)
+  // const { isAuthenticated, user, accessToken } = useAuth()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -79,7 +83,7 @@ export const ProductsPage: React.FC = () => {
     }
   }
 
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = (Array.isArray(products) ? products : []).filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.sku.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = filterStatus === 'all' || 
@@ -93,6 +97,9 @@ export const ProductsPage: React.FC = () => {
     if (stockQuantity <= lowStockThreshold) return { status: 'low-stock', color: 'bg-yellow-100 text-yellow-800' }
     return { status: 'in-stock', color: 'bg-green-100 text-green-800' }
   }
+
+  // Temporarily bypass authentication check for development
+  // TODO: Remove this when proper authentication is implemented
 
   if (productsLoading) {
     return (
@@ -148,6 +155,9 @@ export const ProductsPage: React.FC = () => {
       {productsError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <p className="text-red-600">Error loading products: {productsError}</p>
+          {productsError.includes('401') && (
+            <p className="text-red-600 mt-2">Please make sure you are logged in as an admin user.</p>
+          )}
           <Button 
             onClick={() => getProducts()} 
             className="mt-2"

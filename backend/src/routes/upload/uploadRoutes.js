@@ -5,7 +5,7 @@ const router = express.Router();
 const uploadController = require('../../controllers/upload/uploadController');
 
 // Import middleware
-const { authenticate, requireAdmin } = require('../../middleware/auth/authMiddleware');
+const { authenticate, requireAdmin } = require('../../middleware/auth/authMiddleware-simple');
 const { validateParams, validateQuery } = require('../../middleware/validation/validationMiddleware');
 const { 
   productImageUpload, 

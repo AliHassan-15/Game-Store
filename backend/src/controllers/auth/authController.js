@@ -11,12 +11,13 @@ const {
   authenticateGoogle, 
   authenticateGoogleCallback,
   logoutUser 
-} = require('../../middleware/auth/authMiddleware');
+} = require('../../middleware/auth/authMiddleware-simple');
 const { validateBody } = require('../../middleware/validation/validationMiddleware');
 const { commonSchemas } = require('../../middleware/validation/validationMiddleware');
 const logger = require('../../utils/logger/logger');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 /**
  * Auth Controller - Handles authentication and authorization
@@ -111,6 +112,84 @@ class AuthController {
       res.status(500).json({
         success: false,
         message: 'Registration failed',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Register admin user (for initial setup)
+   * POST /api/v1/auth/register-admin
+   */
+  async registerAdmin(req, res) {
+    try {
+      const { firstName, lastName, email, password, phone } = req.body;
+
+      // Check if user already exists
+      const existingUser = await User.findOne({ where: { email: email.toLowerCase() } });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'User with this email already exists'
+        });
+      }
+
+      // Create admin user (password will be hashed automatically by the model hook)
+      const user = await User.create({
+        firstName,
+        lastName,
+        email: email.toLowerCase(),
+        password,
+        phone,
+        role: 'admin',
+        isVerified: true,
+        isActive: true
+      });
+
+      // Generate tokens
+      const accessToken = jwt.sign(
+        {
+          userId: user.id,
+          role: user.role,
+          type: 'access'
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m' }
+      );
+
+      const refreshToken = jwt.sign(
+        {
+          userId: user.id,
+          type: 'refresh'
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Admin user registered successfully',
+        data: {
+          user: {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role,
+            isVerified: user.isVerified,
+            avatar: user.avatar
+          },
+          tokens: {
+            accessToken,
+            refreshToken
+          }
+        }
+      });
+    } catch (error) {
+      logger.error('Admin registration error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Admin registration failed',
         error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }

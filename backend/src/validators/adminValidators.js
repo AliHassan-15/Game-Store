@@ -530,6 +530,162 @@ const adminValidators = {
         'any.only': 'You must confirm the reset operation',
         'any.required': 'Confirmation is required'
       })
+  }),
+
+  // Get user report validation
+  getUserReport: Joi.object({
+    startDate: Joi.date()
+      .iso()
+      .optional()
+      .messages({
+        'date.base': 'Start date must be a valid date',
+        'date.format': 'Start date must be in ISO format'
+      }),
+    endDate: Joi.date()
+      .iso()
+      .min(Joi.ref('startDate'))
+      .optional()
+      .messages({
+        'date.base': 'End date must be a valid date',
+        'date.format': 'End date must be in ISO format',
+        'date.min': 'End date must be after start date'
+      }),
+    role: Joi.string()
+      .valid('buyer', 'admin')
+      .optional()
+      .messages({
+        'any.only': 'Role must be either buyer or admin'
+      }),
+    isVerified: Joi.boolean()
+      .optional()
+      .messages({
+        'boolean.base': 'Is verified must be a boolean'
+      })
+  }),
+
+  // Get categories validation
+  getCategories: Joi.object({
+    page: Joi.number()
+      .integer()
+      .min(1)
+      .default(1)
+      .messages({
+        'number.base': 'Page must be a number',
+        'number.integer': 'Page must be an integer',
+        'number.min': 'Page must be at least 1'
+      }),
+    limit: Joi.number()
+      .integer()
+      .min(1)
+      .max(100)
+      .default(20)
+      .messages({
+        'number.base': 'Limit must be a number',
+        'number.integer': 'Limit must be an integer',
+        'number.min': 'Limit must be at least 1',
+        'number.max': 'Limit cannot exceed 100'
+      }),
+    search: Joi.string()
+      .min(1)
+      .max(100)
+      .optional()
+      .messages({
+        'string.min': 'Search term must be at least 1 character',
+        'string.max': 'Search term cannot exceed 100 characters'
+      }),
+    isActive: Joi.boolean()
+      .optional()
+      .messages({
+        'boolean.base': 'Is active must be a boolean'
+      })
+  }),
+
+  // Get category stats validation
+  getCategoryStats: Joi.object({
+    startDate: Joi.date()
+      .iso()
+      .optional()
+      .messages({
+        'date.base': 'Start date must be a valid date',
+        'date.format': 'Start date must be in ISO format'
+      }),
+    endDate: Joi.date()
+      .iso()
+      .min(Joi.ref('startDate'))
+      .optional()
+      .messages({
+        'date.base': 'End date must be a valid date',
+        'date.format': 'End date must be in ISO format',
+        'date.min': 'End date must be after start date'
+      })
+  }),
+
+  // Get reviews validation
+  getReviews: Joi.object({
+    page: Joi.number()
+      .integer()
+      .min(1)
+      .default(1)
+      .messages({
+        'number.base': 'Page must be a number',
+        'number.integer': 'Page must be an integer',
+        'number.min': 'Page must be at least 1'
+      }),
+    limit: Joi.number()
+      .integer()
+      .min(1)
+      .max(100)
+      .default(20)
+      .messages({
+        'number.base': 'Limit must be a number',
+        'number.integer': 'Limit must be an integer',
+        'number.min': 'Limit must be at least 1',
+        'number.max': 'Limit cannot exceed 100'
+      }),
+    search: Joi.string()
+      .min(1)
+      .max(100)
+      .optional()
+      .messages({
+        'string.min': 'Search term must be at least 1 character',
+        'string.max': 'Search term cannot exceed 100 characters'
+      }),
+    rating: Joi.number()
+      .integer()
+      .min(1)
+      .max(5)
+      .optional()
+      .messages({
+        'number.base': 'Rating must be a number',
+        'number.integer': 'Rating must be an integer',
+        'number.min': 'Rating must be at least 1',
+        'number.max': 'Rating cannot exceed 5'
+      }),
+    isApproved: Joi.boolean()
+      .optional()
+      .messages({
+        'boolean.base': 'Is approved must be a boolean'
+      })
+  }),
+
+  // Get review stats validation
+  getReviewStats: Joi.object({
+    startDate: Joi.date()
+      .iso()
+      .optional()
+      .messages({
+        'date.base': 'Start date must be a valid date',
+        'date.format': 'Start date must be in ISO format'
+      }),
+    endDate: Joi.date()
+      .iso()
+      .min(Joi.ref('startDate'))
+      .optional()
+      .messages({
+        'date.base': 'End date must be a valid date',
+        'date.format': 'End date must be in ISO format',
+        'date.min': 'End date must be after start date'
+      })
   })
 };
 

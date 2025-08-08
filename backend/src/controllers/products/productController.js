@@ -31,11 +31,11 @@ class ProductController {
         genre,
         sortBy = 'createdAt',
         sortOrder = 'DESC',
-        isActive = true
+        isActive = 'true'
       } = req.query;
 
       const offset = (page - 1) * limit;
-      const whereClause = { isActive: isActive === 'true' };
+      const whereClause = { isActive: isActive === 'true' || isActive === true };
 
       // Add filters
       if (category) whereClause.categoryId = category;

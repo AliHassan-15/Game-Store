@@ -4,11 +4,14 @@ import {
   PaymentMethodResponse
 } from '@/types/payment/payment'
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
+
 const paymentApi = axios.create({
-  baseURL: '/api/v1/payment',
+  baseURL: `${API_BASE_URL}/payment`,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 })
 
 // Add auth token to requests

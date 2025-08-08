@@ -5,7 +5,7 @@ const router = express.Router();
 const reviewController = require('../../controllers/reviews/reviewController');
 
 // Import middleware
-const { authenticate, requireAdmin, requireBuyer, optionalAuth } = require('../../middleware/auth/authMiddleware');
+const { authenticate, requireAdmin, requireBuyer, optionalAuth } = require('../../middleware/auth/authMiddleware-simple');
 const { validateBody, validateParams, validateQuery } = require('../../middleware/validation/validationMiddleware');
 
 // Import validation schemas

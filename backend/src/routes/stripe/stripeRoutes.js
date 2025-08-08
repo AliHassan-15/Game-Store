@@ -5,7 +5,7 @@ const router = express.Router();
 const stripeController = require('../../controllers/stripe/stripeController');
 
 // Import middleware
-const { authenticate, requireBuyer } = require('../../middleware/auth/authMiddleware');
+const { authenticate, requireBuyer } = require('../../middleware/auth/authMiddleware-simple');
 const { validateBody, validateParams } = require('../../middleware/validation/validationMiddleware');
 
 

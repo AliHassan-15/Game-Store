@@ -1,4 +1,4 @@
-const bcrypt = require('bcryptjs');
+const { sequelize } = require('../../src/config/database');
 const { 
   User, 
   Category, 
@@ -15,7 +15,7 @@ const {
   ActivityLog 
 } = require('../../src/models');
 
-async function seed() {
+async function seedData() {
   try {
     console.log('🌱 Starting database seeding...');
 
@@ -45,7 +45,13 @@ async function seed() {
         slug: 'sports-games',
         isActive: true
       }
-    ]);
+    ], { ignoreDuplicates: true });
+
+    // Get the created categories to use their IDs
+    const actionCategory = await Category.findOne({ where: { slug: 'action-games' } });
+    const rpgCategory = await Category.findOne({ where: { slug: 'rpg-games' } });
+    const strategyCategory = await Category.findOne({ where: { slug: 'strategy-games' } });
+    const sportsCategory = await Category.findOne({ where: { slug: 'sports-games' } });
 
     // Create SubCategories
     const subCategories = await SubCategory.bulkCreate([
@@ -53,33 +59,34 @@ async function seed() {
         name: 'First-Person Shooter',
         description: 'FPS games with immersive combat',
         slug: 'first-person-shooter',
-        categoryId: categories[0].id,
+        categoryId: actionCategory.id,
         isActive: true
       },
       {
         name: 'Open World RPG',
         description: 'Open world role-playing games',
         slug: 'open-world-rpg',
-        categoryId: categories[1].id,
+        categoryId: rpgCategory.id,
         isActive: true
       },
       {
         name: 'Real-Time Strategy',
         description: 'RTS games requiring quick thinking',
         slug: 'real-time-strategy',
-        categoryId: categories[2].id,
+        categoryId: strategyCategory.id,
         isActive: true
       },
       {
         name: 'Football Games',
         description: 'Soccer and football simulation games',
         slug: 'football-games',
-        categoryId: categories[3].id,
+        categoryId: sportsCategory.id,
         isActive: true
       }
-    ]);
+    ], { ignoreDuplicates: true });
 
     // Create Users
+    const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash('password123', 12);
     const users = await User.bulkCreate([
       {
@@ -112,7 +119,13 @@ async function seed() {
         isVerified: true,
         isActive: true
       }
-    ]);
+    ], { ignoreDuplicates: true });
+
+    // Get the created subcategories to use their IDs
+    const fpsSubCategory = await SubCategory.findOne({ where: { slug: 'first-person-shooter' } });
+    const rpgSubCategory = await SubCategory.findOne({ where: { slug: 'open-world-rpg' } });
+    const rtsSubCategory = await SubCategory.findOne({ where: { slug: 'real-time-strategy' } });
+    const footballSubCategory = await SubCategory.findOne({ where: { slug: 'football-games' } });
 
     // Create Products
     const products = await Product.bulkCreate([
@@ -120,11 +133,12 @@ async function seed() {
         name: 'Call of Duty: Modern Warfare',
         description: 'Intense first-person shooter with modern combat',
         slug: 'call-of-duty-modern-warfare',
+        sku: 'COD-MW-001',
         price: 59.99,
-        originalPrice: 69.99,
+        comparePrice: 69.99,
         stockQuantity: 100,
-        categoryId: categories[0].id,
-        subCategoryId: subCategories[0].id,
+        categoryId: actionCategory.id,
+        subCategoryId: fpsSubCategory.id,
         platform: 'PC',
         genre: 'FPS',
         publisher: 'Activision',
@@ -138,11 +152,12 @@ async function seed() {
         name: 'The Witcher 3: Wild Hunt',
         description: 'Epic open-world RPG with rich storytelling',
         slug: 'the-witcher-3-wild-hunt',
+        sku: 'WITCHER3-001',
         price: 39.99,
-        originalPrice: 59.99,
+        comparePrice: 59.99,
         stockQuantity: 75,
-        categoryId: categories[1].id,
-        subCategoryId: subCategories[1].id,
+        categoryId: rpgCategory.id,
+        subCategoryId: rpgSubCategory.id,
         platform: 'PC',
         genre: 'RPG',
         publisher: 'CD Projekt',
@@ -156,11 +171,12 @@ async function seed() {
         name: 'StarCraft II: Wings of Liberty',
         description: 'Classic real-time strategy game',
         slug: 'starcraft-ii-wings-of-liberty',
+        sku: 'SC2-WOL-001',
         price: 29.99,
-        originalPrice: 39.99,
+        comparePrice: 39.99,
         stockQuantity: 50,
-        categoryId: categories[2].id,
-        subCategoryId: subCategories[2].id,
+        categoryId: strategyCategory.id,
+        subCategoryId: rtsSubCategory.id,
         platform: 'PC',
         genre: 'RTS',
         publisher: 'Blizzard Entertainment',
@@ -174,11 +190,12 @@ async function seed() {
         name: 'FIFA 24',
         description: 'Latest football simulation game',
         slug: 'fifa-24',
+        sku: 'FIFA24-001',
         price: 69.99,
-        originalPrice: 69.99,
+        comparePrice: 69.99,
         stockQuantity: 200,
-        categoryId: categories[3].id,
-        subCategoryId: subCategories[3].id,
+        categoryId: sportsCategory.id,
+        subCategoryId: footballSubCategory.id,
         platform: 'PC',
         genre: 'Sports',
         publisher: 'EA Sports',
@@ -188,94 +205,7 @@ async function seed() {
         isFeatured: true,
         isActive: true
       }
-    ]);
-
-    // Create User Addresses
-    await UserAddress.bulkCreate([
-      {
-        userId: users[0].id,
-        type: 'shipping',
-        firstName: 'John',
-        lastName: 'Doe',
-        addressLine1: '123 Main Street',
-        city: 'New York',
-        state: 'NY',
-        postalCode: '10001',
-        country: 'United States',
-        phone: '+1234567890',
-        isDefault: true
-      },
-      {
-        userId: users[0].id,
-        type: 'billing',
-        firstName: 'John',
-        lastName: 'Doe',
-        addressLine1: '123 Main Street',
-        city: 'New York',
-        state: 'NY',
-        postalCode: '10001',
-        country: 'United States',
-        phone: '+1234567890',
-        isDefault: true
-      }
-    ]);
-
-    // Create User Payment Methods
-    await UserPayment.bulkCreate([
-      {
-        userId: users[0].id,
-        type: 'card',
-        provider: 'Visa',
-        last4: '1234',
-        brand: 'Visa',
-        expMonth: 12,
-        expYear: 2025,
-        isDefault: true,
-        isActive: true
-      }
-    ]);
-
-    // Create Reviews
-    await Review.bulkCreate([
-      {
-        userId: users[0].id,
-        productId: products[0].id,
-        rating: 5,
-        title: 'Amazing Game!',
-        comment: 'This is one of the best FPS games I have ever played. Highly recommended!',
-        isVerified: true,
-        isActive: true
-      },
-      {
-        userId: users[1].id,
-        productId: products[1].id,
-        rating: 5,
-        title: 'Masterpiece RPG',
-        comment: 'The Witcher 3 is a masterpiece. The story, graphics, and gameplay are all exceptional.',
-        isVerified: true,
-        isActive: true
-      }
-    ]);
-
-    // Create Inventory Transactions
-    await InventoryTransaction.bulkCreate([
-      {
-        productId: products[0].id,
-        type: 'in',
-        quantity: 100,
-        reason: 'Initial stock',
-        reference: 'INIT-001',
-        notes: 'Initial inventory setup'
-      },
-      {
-        productId: products[1].id,
-        type: 'in',
-        quantity: 75,
-        reason: 'Initial stock',
-        reference: 'INIT-002',
-        notes: 'Initial inventory setup'
-      }
-    ]);
+    ], { ignoreDuplicates: true });
 
     console.log('✅ Database seeded successfully!');
     console.log(`📊 Created: ${categories.length} categories, ${subCategories.length} subcategories, ${users.length} users, ${products.length} products`);
@@ -286,4 +216,4 @@ async function seed() {
   }
 }
 
-module.exports = { seed };
+module.exports = seedData;

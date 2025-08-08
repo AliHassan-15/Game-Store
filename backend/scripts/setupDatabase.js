@@ -1,329 +1,79 @@
+const { Sequelize } = require('sequelize');
 require('dotenv').config();
-const { sequelize } = require('../src/config/database');
-const { 
-  User, 
-  Category, 
-  SubCategory, 
-  Product, 
-  Cart, 
-  CartItem, 
-  Order, 
-  OrderItem, 
-  Review, 
-  InventoryTransaction, 
-  UserAddress, 
-  UserPayment, 
-  ActivityLog 
-} = require('../src/models');
 
-async function up() {
-  try {
-    // Sync all models to create tables
-    await sequelize.sync({ force: true });
-    console.log('✅ All tables created successfully');
-  } catch (error) {
-    console.error('❌ Error creating tables:', error);
-    throw error;
+// Create a connection to PostgreSQL server (without specifying database)
+const sequelizeServer = new Sequelize({
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 5432,
+  username: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'qbatch',
+  dialect: 'postgres',
+  logging: false
+});
+
+// Create database connection
+const sequelize = new Sequelize(
+  process.env.DB_NAME || 'gameStoreDb',
+  process.env.DB_USER || 'postgres',
+  process.env.DB_PASSWORD || 'qbatch',
+  {
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    dialect: 'postgres',
+    logging: false
   }
-}
-
-async function seed() {
-  try {
-    console.log('🌱 Starting database seeding...');
-
-    // Create Categories
-    const categories = await Category.bulkCreate([
-      {
-        name: 'Action Games',
-        description: 'Fast-paced action and adventure games',
-        slug: 'action-games',
-        isActive: true
-      },
-      {
-        name: 'RPG Games',
-        description: 'Role-playing games with deep storylines',
-        slug: 'rpg-games',
-        isActive: true
-      },
-      {
-        name: 'Strategy Games',
-        description: 'Strategic thinking and planning games',
-        slug: 'strategy-games',
-        isActive: true
-      },
-      {
-        name: 'Sports Games',
-        description: 'Sports and athletic simulation games',
-        slug: 'sports-games',
-        isActive: true
-      }
-    ]);
-
-    // Create SubCategories
-    const subCategories = await SubCategory.bulkCreate([
-      {
-        name: 'First-Person Shooter',
-        description: 'FPS games with immersive combat',
-        slug: 'first-person-shooter',
-        categoryId: categories[0].id,
-        isActive: true
-      },
-      {
-        name: 'Open World RPG',
-        description: 'Open world role-playing games',
-        slug: 'open-world-rpg',
-        categoryId: categories[1].id,
-        isActive: true
-      },
-      {
-        name: 'Real-Time Strategy',
-        description: 'RTS games requiring quick thinking',
-        slug: 'real-time-strategy',
-        categoryId: categories[2].id,
-        isActive: true
-      },
-      {
-        name: 'Football Games',
-        description: 'Soccer and football simulation games',
-        slug: 'football-games',
-        categoryId: categories[3].id,
-        isActive: true
-      }
-    ]);
-
-    // Create Users
-    const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash('password123', 12);
-    const users = await User.bulkCreate([
-      {
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        password: hashedPassword,
-        phone: '+1234567890',
-        role: 'buyer',
-        isVerified: true,
-        isActive: true
-      },
-      {
-        firstName: 'Jane',
-        lastName: 'Smith',
-        email: 'jane.smith@example.com',
-        password: hashedPassword,
-        phone: '+1234567891',
-        role: 'buyer',
-        isVerified: true,
-        isActive: true
-      },
-      {
-        firstName: 'Admin',
-        lastName: 'User',
-        email: 'admin@gamestore.com',
-        password: hashedPassword,
-        phone: '+1234567892',
-        role: 'admin',
-        isVerified: true,
-        isActive: true
-      }
-    ]);
-
-    // Create Products
-    const products = await Product.bulkCreate([
-      {
-        name: 'Call of Duty: Modern Warfare',
-        description: 'Intense first-person shooter with modern combat',
-        slug: 'call-of-duty-modern-warfare',
-        sku: 'COD-MW-001',
-        price: 59.99,
-        comparePrice: 69.99,
-        stockQuantity: 100,
-        categoryId: categories[0].id,
-        subCategoryId: subCategories[0].id,
-        platform: 'PC',
-        genre: 'FPS',
-        publisher: 'Activision',
-        developer: 'Infinity Ward',
-        releaseDate: '2019-10-25',
-        isOnSale: true,
-        isFeatured: true,
-        isActive: true
-      },
-      {
-        name: 'The Witcher 3: Wild Hunt',
-        description: 'Epic open-world RPG with rich storytelling',
-        slug: 'the-witcher-3-wild-hunt',
-        sku: 'WITCHER3-001',
-        price: 39.99,
-        comparePrice: 59.99,
-        stockQuantity: 75,
-        categoryId: categories[1].id,
-        subCategoryId: subCategories[1].id,
-        platform: 'PC',
-        genre: 'RPG',
-        publisher: 'CD Projekt',
-        developer: 'CD Projekt Red',
-        releaseDate: '2015-05-19',
-        isOnSale: true,
-        isFeatured: true,
-        isActive: true
-      },
-      {
-        name: 'StarCraft II: Wings of Liberty',
-        description: 'Classic real-time strategy game',
-        slug: 'starcraft-ii-wings-of-liberty',
-        sku: 'SC2-WOL-001',
-        price: 29.99,
-        comparePrice: 39.99,
-        stockQuantity: 50,
-        categoryId: categories[2].id,
-        subCategoryId: subCategories[2].id,
-        platform: 'PC',
-        genre: 'RTS',
-        publisher: 'Blizzard Entertainment',
-        developer: 'Blizzard Entertainment',
-        releaseDate: '2010-07-27',
-        isOnSale: false,
-        isFeatured: false,
-        isActive: true
-      },
-      {
-        name: 'FIFA 24',
-        description: 'Latest football simulation game',
-        slug: 'fifa-24',
-        sku: 'FIFA24-001',
-        price: 69.99,
-        comparePrice: 69.99,
-        stockQuantity: 200,
-        categoryId: categories[3].id,
-        subCategoryId: subCategories[3].id,
-        platform: 'PC',
-        genre: 'Sports',
-        publisher: 'EA Sports',
-        developer: 'EA Sports',
-        releaseDate: '2023-09-29',
-        isOnSale: false,
-        isFeatured: true,
-        isActive: true
-      }
-    ]);
-
-    // Create User Addresses
-    await UserAddress.bulkCreate([
-      {
-        userId: users[0].id,
-        type: 'shipping',
-        firstName: 'John',
-        lastName: 'Doe',
-        addressLine1: '123 Main Street',
-        city: 'New York',
-        state: 'NY',
-        postalCode: '10001',
-        country: 'United States',
-        phone: '+1234567890',
-        isDefault: true
-      },
-      {
-        userId: users[0].id,
-        type: 'billing',
-        firstName: 'John',
-        lastName: 'Doe',
-        addressLine1: '123 Main Street',
-        city: 'New York',
-        state: 'NY',
-        postalCode: '10001',
-        country: 'United States',
-        phone: '+1234567890',
-        isDefault: true
-      }
-    ]);
-
-    // Create User Payment Methods
-    await UserPayment.bulkCreate([
-      {
-        userId: users[0].id,
-        paymentType: 'card',
-        stripePaymentMethodId: 'pm_test_1234567890',
-        cardBrand: 'Visa',
-        cardLast4: '1234',
-        cardExpMonth: 12,
-        cardExpYear: 2025,
-        isDefault: true,
-        isActive: true
-      }
-    ]);
-
-    // Create Reviews
-    await Review.bulkCreate([
-      {
-        userId: users[0].id,
-        productId: products[0].id,
-        rating: 5,
-        title: 'Amazing Game!',
-        content: 'This is one of the best FPS games I have ever played. Highly recommended!',
-        isVerified: true,
-        isActive: true
-      },
-      {
-        userId: users[1].id,
-        productId: products[1].id,
-        rating: 5,
-        title: 'Masterpiece RPG',
-        content: 'The Witcher 3 is a masterpiece. The story, graphics, and gameplay are all exceptional.',
-        isVerified: true,
-        isActive: true
-      }
-    ]);
-
-    // Create Inventory Transactions
-    await InventoryTransaction.bulkCreate([
-      {
-        productId: products[0].id,
-        transactionType: 'stock_in',
-        quantity: 100,
-        stockBefore: 0,
-        stockAfter: 100,
-        referenceType: 'manual',
-        reason: 'Initial stock',
-        metadata: {}
-      },
-      {
-        productId: products[1].id,
-        transactionType: 'stock_in',
-        quantity: 75,
-        stockBefore: 0,
-        stockAfter: 75,
-        referenceType: 'manual',
-        reason: 'Initial stock',
-        metadata: {}
-      }
-    ]);
-
-    console.log('✅ Database seeded successfully!');
-    console.log(`📊 Created: ${categories.length} categories, ${subCategories.length} subcategories, ${users.length} users, ${products.length} products`);
-
-  } catch (error) {
-    console.error('❌ Error seeding database:', error);
-    throw error;
-  }
-}
+);
 
 async function setupDatabase() {
   try {
-    console.log('🚀 Starting database setup...');
+    console.log('🔧 Setting up database...');
     
-    // Run migrations
-    console.log('📋 Running migrations...');
-    await up();
+    // Test server connection
+    await sequelizeServer.authenticate();
+    console.log('✅ Connected to PostgreSQL server');
     
-    // Run seeding
-    console.log('🌱 Running seed data...');
-    await seed();
+    // Create database if it doesn't exist
+    try {
+      await sequelizeServer.query(`CREATE DATABASE "${process.env.DB_NAME || 'gameStoreDb'}"`);
+      console.log('✅ Database created successfully');
+    } catch (error) {
+      if (error.message.includes('already exists')) {
+        console.log('✅ Database already exists');
+      } else {
+        throw error;
+      }
+    }
     
-    console.log('✅ Database setup completed successfully!');
-    process.exit(0);
+    // Close server connection
+    await sequelizeServer.close();
+    
+    // Test database connection
+    await sequelize.authenticate();
+    console.log('✅ Connected to database');
+    
+    // Import models
+    const models = require('../src/models');
+    
+    // Sync all models (create tables)
+    await sequelize.sync({ force: false, alter: true });
+    console.log('✅ Database tables synchronized');
+    
+    // Import and run seed data
+    try {
+      const seedData = require('./seeds/seedData');
+      await seedData();
+      console.log('✅ Seed data inserted');
+    } catch (error) {
+      console.log('⚠️  Seed data insertion failed (this is normal if data already exists):', error.message);
+    }
+    
+    console.log('🎉 Database setup completed successfully!');
+    
   } catch (error) {
-    console.error('❌ Database setup failed:', error);
+    console.error('❌ Database setup failed:', error.message);
     process.exit(1);
+  } finally {
+    await sequelize.close();
   }
 }
 

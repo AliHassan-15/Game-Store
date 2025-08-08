@@ -5,7 +5,7 @@ const router = express.Router();
 const adminController = require('../../controllers/admin/adminController');
 
 // Import middleware
-const { authenticate, requireAdmin } = require('../../middleware/auth/authMiddleware');
+const { authenticate, requireAdmin } = require('../../middleware/auth/authMiddleware-simple');
 const { validateQuery } = require('../../middleware/validation/validationMiddleware');
 
 // Import validation schemas
@@ -15,7 +15,6 @@ const { adminValidators } = require('../../validators/adminValidators');
 router.get('/dashboard',
   authenticate,
   requireAdmin,
-  validateQuery(adminValidators.getDashboard),
   adminController.getDashboard
 );
 
@@ -23,14 +22,12 @@ router.get('/dashboard',
 router.get('/users',
   authenticate,
   requireAdmin,
-  validateQuery(adminValidators.getUsers),
   adminController.getUsers
 );
 
 router.get('/users/stats',
   authenticate,
   requireAdmin,
-  validateQuery(adminValidators.getUserStats),
   adminController.getUserStats
 );
 
@@ -38,14 +35,12 @@ router.get('/users/stats',
 router.get('/products',
   authenticate,
   requireAdmin,
-  validateQuery(adminValidators.getProducts),
   adminController.getProducts
 );
 
 router.get('/products/stats',
   authenticate,
   requireAdmin,
-  validateQuery(adminValidators.getProductStats),
   adminController.getProductStats
 );
 
@@ -53,15 +48,41 @@ router.get('/products/stats',
 router.get('/orders',
   authenticate,
   requireAdmin,
-  validateQuery(adminValidators.getOrders),
   adminController.getOrders
 );
 
 router.get('/orders/stats',
   authenticate,
   requireAdmin,
-  validateQuery(adminValidators.getOrderStats),
   adminController.getOrderStats
+);
+
+// Category management
+router.get('/categories',
+  authenticate,
+  requireAdmin,
+  adminController.getCategories
+);
+
+router.get('/categories/stats',
+  authenticate,
+  requireAdmin,
+  adminController.getCategoryStats
+);
+
+// Review management
+router.get('/reviews',
+  authenticate,
+  requireAdmin,
+  validateQuery(adminValidators.getReviews),
+  adminController.getReviews
+);
+
+router.get('/reviews/stats',
+  authenticate,
+  requireAdmin,
+  validateQuery(adminValidators.getReviewStats),
+  adminController.getReviewStats
 );
 
 // Sales analytics

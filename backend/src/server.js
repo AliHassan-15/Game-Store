@@ -1,254 +1,109 @@
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
-const compression = require('compression');
-const morgan = require('morgan');
-const session = require('express-session');
-const passport = require('passport');
 const path = require('path');
 require('dotenv').config();
-
-// Import configurations
-const { sequelize } = require('./config/database');
-const { redisClient } = require('./config/redis');
-const { initializeSessionStore } = require('./config/passport');
-
-// Import middleware
-const { errorHandler, asyncHandler, notFoundHandler } = require('./middleware/errorHandler');
-const { 
-  requestLogger, 
-  errorLogger, 
-  performanceLogger, 
-  securityLogger, 
-  apiUsageLogger,
-  devLogger,
-  prodLogger 
-} = require('./middleware/logger');
-const { 
-  apiLimiter, 
-  authLimiter, 
-  passwordResetLimiter, 
-  uploadLimiter, 
-  orderLimiter, 
-  reviewLimiter, 
-  adminLimiter 
-} = require('./middleware/rateLimiter');
 
 // Import routes
 const routes = require('./routes');
 
 // Import utilities
 const logger = require('./utils/logger/logger');
-const { ENV, SESSION } = require('./utils/constants/constants');
+
+// Import authentication configuration
+const { setupAuthMiddleware } = require('./config/auth-simple');
+
+// Import database
+const { sequelize } = require('./models');
 
 // Create Express app
 const app = express();
-
-// Trust proxy for rate limiting and IP detection
-app.set('trust proxy', 1);
-
-// Security middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      scriptSrc: ["'self'"],
-      connectSrc: ["'self'"],
-      frameSrc: ["'none'"],
-      objectSrc: ["'none'"]
-    }
-  },
-  crossOriginEmbedderPolicy: false
-}));
 
 // CORS configuration
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? [process.env.FRONTEND_URL, process.env.ADMIN_URL].filter(Boolean)
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4173'],
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:4173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 
-// Compression middleware
-app.use(compression());
-
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Setup authentication middleware (sessions, passport, cookies)
+// setupAuthMiddleware(app);
 
 // Static file serving
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/public', express.static(path.join(__dirname, '../public')));
 
-// Session configuration
-const sessionStore = initializeSessionStore(redisClient);
-app.use(session({
-  store: sessionStore,
-  secret: SESSION.SECRET,
-  resave: SESSION.RESAVE,
-  saveUninitialized: SESSION.SAVE_UNINITIALIZED,
-  cookie: {
-    secure: SESSION.COOKIE_SECURE,
-    httpOnly: SESSION.COOKIE_HTTP_ONLY,
-    sameSite: SESSION.COOKIE_SAME_SITE,
-    maxAge: SESSION.COOKIE_MAX_AGE
-  },
-  name: 'gamestore.sid'
-}));
-
-// Passport middleware
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Logging middleware
-if (process.env.NODE_ENV === ENV.DEVELOPMENT) {
-  app.use(morgan('dev', { stream: logger.stream }));
-  app.use(devLogger);
-} else {
-  app.use(morgan('combined', { stream: logger.stream }));
-  app.use(prodLogger);
-}
-
-// Custom logging middleware
-app.use(requestLogger);
-app.use(errorLogger);
-app.use(performanceLogger);
-app.use(securityLogger);
-app.use(apiUsageLogger);
-
-// Rate limiting middleware - apply to specific routes
-app.use('/api/v1/auth', authLimiter);
-app.use('/api/v1/auth/forgot-password', passwordResetLimiter);
-app.use('/api/v1/auth/reset-password', passwordResetLimiter);
-app.use('/api/v1/upload', uploadLimiter);
-app.use('/api/v1/orders', orderLimiter);
-app.use('/api/v1/reviews', reviewLimiter);
-app.use('/api/v1/admin', adminLimiter);
-
-// General API rate limiting
-app.use('/api', apiLimiter);
-
 // Mount all routes
 app.use('/', routes);
 
 // 404 handler for undefined routes
-app.use(notFoundHandler);
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+    path: req.originalUrl,
+    method: req.method,
+    timestamp: new Date().toISOString()
+  });
+});
 
-// Error handling middleware (must be last)
-app.use(errorHandler);
+// Error handling middleware
+app.use((err, req, res, next) => {
+  logger.error('Error:', err.message);
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+});
 
-// Graceful shutdown
-const gracefulShutdown = async (signal) => {
-  logger.info(`Received ${signal}. Starting graceful shutdown...`);
-  
+// Initialize database and start server
+const startServer = async () => {
   try {
-    // Close database connection (if available)
-    try {
-      await sequelize.close();
-      logger.info('Database connection closed');
-    } catch (dbError) {
-      logger.warn('Database connection already closed or not available');
-    }
+    // Sync database tables
+    await sequelize.sync({ force: true }); // Force recreate all tables
+    logger.info('Database synchronized successfully');
     
-    // Close Redis connection (if available)
-    try {
-      await redisClient.quit();
-      logger.info('Redis connection closed');
-    } catch (redisError) {
-      logger.warn('Redis connection already closed or not available');
-    }
-    
-    // Close server
-    server.close(() => {
-      logger.info('HTTP server closed');
-      process.exit(0);
+    const server = app.listen(PORT, () => {
+      logger.startup('Server', 'started', { port: PORT, environment: process.env.NODE_ENV });
     });
     
-    // Force exit after 10 seconds
-    setTimeout(() => {
-      logger.error('Forced shutdown after timeout');
-      process.exit(1);
-    }, 10000);
+    // Graceful shutdown
+    const gracefulShutdown = async (signal) => {
+      logger.info(`Received ${signal}. Starting graceful shutdown...`);
+      
+      server.close(async () => {
+        await sequelize.close();
+        logger.info('HTTP server closed');
+        process.exit(0);
+      });
+      
+      // Force exit after 10 seconds
+      setTimeout(() => {
+        logger.error('Forced shutdown after timeout');
+        process.exit(1);
+      }, 10000);
+    };
+
+    // Handle SIGTERM and SIGINT
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
     
   } catch (error) {
-    logger.error('Error during graceful shutdown:', error);
+    logger.error('Failed to start server:', error);
     process.exit(1);
   }
 };
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception:', error);
-  process.exit(1);
-});
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  if (process.env.NODE_ENV === ENV.DEVELOPMENT) {
-    // Silently ignore unhandled rejections in development mode
-    return;
-  } else {
-    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    process.exit(1);
-  }
-});
-
-// Handle SIGTERM and SIGINT
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start server
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  logger.startup('Server', 'started', { port: PORT, environment: process.env.NODE_ENV });
-  
-  // Log memory usage
-  const memUsage = process.memoryUsage();
-  logger.memory(memUsage);
-});
-
-// Initialize database and Redis connections asynchronously (non-blocking)
-const initializeConnections = async () => {
-  // Test database connection (optional in development)
-  try {
-    await sequelize.authenticate();
-    logger.startup('Database', 'connected');
-    
-    // Sync database (in development)
-    if (process.env.NODE_ENV === ENV.DEVELOPMENT) {
-      await sequelize.sync({ alter: true });
-      logger.startup('Database', 'synced');
-    }
-  } catch (dbError) {
-    if (process.env.NODE_ENV === ENV.DEVELOPMENT) {
-      // Silently ignore database connection errors in development
-    } else {
-      logger.error('Database connection failed:', dbError.message);
-    }
-  }
-  
-  // Test Redis connection (optional in development)
-  try {
-    await redisClient.ping();
-    logger.startup('Redis', 'connected');
-  } catch (redisError) {
-    if (process.env.NODE_ENV === ENV.DEVELOPMENT) {
-      // Silently ignore Redis connection errors in development
-    } else {
-      logger.error('Redis connection failed:', redisError.message);
-    }
-  }
-};
-
-// Initialize connections without blocking server startup
-initializeConnections().catch(() => {
-  // Silently handle any errors in development mode
-});
+startServer();
 
 // Export app for testing
 module.exports = app;
